@@ -1,13 +1,12 @@
 from __future__ import annotations
 import jax.numpy as np
-import jax.random as jr
 import dLux.utils as dlu
 from jax import Array, vmap
 import dLux
+import os
 
 
-Optics = lambda : dLux.core.BaseOptics
-MixedAlphaCen = lambda : dLux.models.MixedAlphaCen
+MixedAlphaCen = lambda : dLuxToliman.sources.MixedAlphaCen
 
 __all__ = ["TolimanOptics"]
 
@@ -68,8 +67,7 @@ class TolimanOptics(AngularOptics()):
 
         # Generate Mask
         if mask is None:
-            import os
-            path = "./dLuxToliman/diffractive_pupil.npy"
+            path = os.path.join(os.path.dirname(__file__), "diffractive_pupil.npy")
             mask = dlu.scale_array(np.load(path), wf_npixels, order=1)
             
             # Enforce full binary
