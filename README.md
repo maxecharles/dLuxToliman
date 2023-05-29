@@ -41,7 +41,7 @@ plt.title('Toliman $\sqrt{PSF}$')
 plt.show()
 ```
 
-The above code generates the PSF for the Toliman optical system, with the Alpha Centauri source, and plots the PSF on a square root stretch.
+![Example Image](./assets/basic_toliman_psf.jpg)
 
 ## Contributors
 [Max Charles](https://github.com/maxecharles), [Louis Desdoigts](https://github.com/LouisDesdoigts), [Benjamin Pope](https://github.com/benjaminpope), and [Peter Tuthill](https://github.com/ptuthill).
