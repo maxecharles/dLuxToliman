@@ -4,6 +4,7 @@
 [![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)](LICENSE)
 
 ## Description
+This repository/package contains pre-built ∂Lux models of the Toliman optical system, and pre-built parametrised ∂Lux source objects for Alpha Centauri.
 
 [∂Lux](https://louisdesdoigts.github.io/dLux/) is an open-source differentiable optical modelling framework harnessing the structural isomorphism between optical systems and neural networks, giving forwards models of optical system as a _parametric neural network_.
 ∂Lux is built in [Zodiax](https://github.com/LouisDesdoigts/zodiax) which is an open-source object-oriented [Jax](https://github.com/google/jax) framework built as an extension of [Equinox](https://github.com/patrick-kidger/equinox) for scientific programming.
@@ -12,8 +13,6 @@ The primary goal of the Toliman mission is to discover Earth-sized exoplanets or
 To achieve this, the mission will employ a novel telescope design that will be able to detect subtle changes in the positions of the Alpha Centauri binary pair.
 These changes are caused by the gravitational reflex motion induced by an Earth-sized companion, and this cutting-edge technology will enable scientists to identify exoplanets too small to be detected by conventional telescopes.
 Toliman utilises a binary phase diffraction pupil to grasp the expected microarcsecond-scale astrometric signal.
-
-**This repository/package contains pre-built ∂Lux models of the Toliman optical system**, and pre-built parametrised ∂Lux source objects for Alpha Centauri.
 
 ## Installation
 
@@ -43,6 +42,9 @@ plt.show()
 ```
 
 The above code generates the PSF for the Toliman optical system, with the Alpha Centauri source, and plots the PSF on a square root stretch.
+
+## Contributors
+[Max Charles](https://github.com/maxecharles), [Louis Desdoigts](https://github.com/LouisDesdoigts), [Benjamin Pope](https://github.com/benjaminpope), and [Peter Tuthill](https://github.com/ptuthill).
 
 ## License
 
