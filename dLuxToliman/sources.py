@@ -1,42 +1,44 @@
 from __future__ import annotations
-import jax.numpy as np
-import jax.random as jr
-import dLux.utils as dlu
 from jax import Array, vmap
+import jax.numpy as np
 import matplotlib.pyplot as plt
 import dLux
+import dLux.utils as dlu
 
-Source = lambda: dLux.sources.BaseSource
-Optics = lambda: dLux.core.BaseOptics
+# TODO check if this lambda was necessary
+Source = dLux.sources.BaseSource
+Optics = dLux.core.BaseOptics
 
 __all__ = ["AlphaCen"]  # , "MixedAlphaCen"]
 
 
-class AlphaCen(Source()):
+class AlphaCen(dLux.sources.BaseSource):
     """
-    
+    A parametrised model of the Alpha Centauri binary pair.
+    TODO: finish docstrings
     """
     separation: float
-    x_position: tuple
-    y_position: tuple
     position_angle: float
+    x_position: float
+    y_position: float
     log_flux: float
     contrast: float
-    wavelengths: Array
+    bandpass: tuple
     weights: Array
+    wavelengths: Array
 
     # TODO : update default values
     # TODO: Add bandpass as a parameter?
     def __init__(self,
                  n_wavels=5,
+                 separation=10.,  # arcseconds
+                 position_angle=90,  # degrees
                  x_position=0.,  # arcseconds
                  y_position=0.,  # arcseconds
-                 separation=10.,  # arcseconds
-                 position_angle=90,  # Degrees
-                 weights=None,
                  log_flux=5,  # Photons
-                 A_mag=1.33,
-                 B_mag=0.01,
+                 contrast=3.37,
+                 bandpass=(530, 640),  # nm
+                 weights=None,
                  ):
         """
         
@@ -47,12 +49,13 @@ class AlphaCen(Source()):
         self.separation = separation
         self.position_angle = position_angle
 
-        # Flux & Constrast
+        # Flux & Contrast
         self.log_flux = log_flux
-        self.contrast = 10 ** ((A_mag - B_mag) / 2.5)
+        self.contrast = contrast
 
-        # Spectrum (Uniform)
-        self.wavelengths = np.linspace(530e-9, 640e-9, n_wavels)
+        # Spectrum (Uniform)  # TODO : Phoenix Models?
+        self.bandpass = bandpass
+        self.wavelengths = 1e-9 * np.linspace(bandpass[0], bandpass[1], n_wavels)
         if weights is None:
             self.weights = np.ones((2, n_wavels)) / n_wavels
         else:
@@ -96,8 +99,7 @@ class AlphaCen(Source()):
         """
         return self.weights / self.weights.sum(1)[:, None]
 
-    def model(self: Source(),
-              optics: Optics()) -> Array:
+    def model(self: Source(), optics: Optics()) -> Array:
         """
         Method to model the psf of the point source through the optics.
 
@@ -113,7 +115,7 @@ class AlphaCen(Source()):
         Returns
         -------
         psf : Array
-            The psf of the source source modelled through the optics.
+            The psf of the source modelled through the optics.
         """
         # Get Values
         weights = self.norm_weights
@@ -257,7 +259,7 @@ class MixedAlphaCen(AlphaCen):
         Returns
         -------
         psf : Array
-            The psf of the source source modelled through the optics.
+            The psf of the source modelled through the optics.
         """
         # Get Values
         weights = self.norm_weights
