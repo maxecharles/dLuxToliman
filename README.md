@@ -36,7 +36,7 @@ source = dlT.AlphaCen(nwavels=3, separation=8, position_angle=30)  # creating Al
 psf = osys.model(source)  # running optical simulation
 
 # plotting
-plt.imshow(psf**.5, cmap = 'inferno')
+plt.imshow(psf**.5, cmap='inferno')
 plt.title('Toliman $\sqrt{PSF}$')
 plt.show()
 ```
