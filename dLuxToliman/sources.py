@@ -35,7 +35,7 @@ class AlphaCen(dLux.sources.BaseSource):
                  position_angle=90,  # degrees
                  x_position=0.,  # arcseconds
                  y_position=0.,  # arcseconds
-                 log_flux=5,  # Photons
+                 log_flux=6.832,  # Photons
                  contrast=3.37,
                  bandpass=(530, 640),  # nm
                  weights=None,
