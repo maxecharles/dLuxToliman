@@ -15,7 +15,34 @@ __all__ = ["AlphaCen"]  # , "MixedAlphaCen"]
 class AlphaCen(dLux.sources.BaseSource):
     """
     A parametrised model of the Alpha Centauri binary pair.
-    TODO: finish docstrings
+
+    Parameters
+    ----------
+    n_wavels : int
+        The number of wavelengths to model.
+    separation : float
+        The binary separation of the two stars in arcseconds.
+    position_angle : float
+        The position angle of the binary pair in degrees.
+    x_position : float
+        The horizontal offset of the image in arcseconds.
+    y_position : float
+        The vertical offset of the image in arcseconds.
+    log_flux : float
+        The log10 of the total number of photons in the image.
+    contrast : float
+        The flux ratio of Alpha Cen A / Alpha Cen B.
+    bandpass : tuple
+        The wavelength range of the image in nanometers, with syntax (min, max).
+    weights : Array
+    TODO im not actually sure
+
+    Attributes
+    ----------
+
+    Methods
+    -------
+    TODO CONTINUE
     """
     separation: float
     position_angle: float
@@ -30,12 +57,12 @@ class AlphaCen(dLux.sources.BaseSource):
     # TODO : update default values
     # TODO: Add bandpass as a parameter?
     def __init__(self,
-                 n_wavels=5,
+                 n_wavels=3,
                  separation=10.,  # arcseconds
                  position_angle=90,  # degrees
                  x_position=0.,  # arcseconds
                  y_position=0.,  # arcseconds
-                 log_flux=6.832,  # Photons TODO SHOULD THIS BE AN AVERAGE?
+                 log_flux=6.832,  # Photons
                  contrast=3.37,
                  bandpass=(530, 640),  # nm
                  weights=None,
