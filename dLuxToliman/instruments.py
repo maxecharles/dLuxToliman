@@ -69,7 +69,7 @@ class Toliman(dLux.instruments.BaseInstrument):
         ys = pixel_scale * np.linspace(-y, y, n_psfs) + centre[1]  # arcseconds
 
         psfs = vmap_prop(self.optics, self.source, xs, ys)
-        return psfs.sum(0) / n_psfs  # adding and renormalising
+        return psfs.sum(0) / n_psfs  # git radding and renormalising
 
     def full_model(self):
         """
