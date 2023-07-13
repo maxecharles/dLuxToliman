@@ -60,7 +60,7 @@ class Toliman(dLux.instruments.BaseInstrument):
                 The jittered PSF.
             """
 
-        vmap_prop = vmap(_centre_and_model, in_axes=(None, None, 0, 0))
+        vmap_prop = vmap(self._centre_and_model, in_axes=(None, None, 0, 0))
         pixel_scale = self.optics.psf_pixel_scale
 
         # converting to cartesian angular coordinates
