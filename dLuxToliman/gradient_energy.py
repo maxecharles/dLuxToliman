@@ -1,19 +1,18 @@
 import jax.numpy as np
 from jax import Array
-import dLux
 import dLux.utils as dlu
 
 __all__ = ["get_GE", "get_RGE", "get_RWGE", "get_radial_mask"]
 
 
-def get_GE(array : Array) -> Array:
+def get_GE(array: Array) -> Array:
     """
-    Calcuates the spatial gradient energy of the array.
+    Calculates the spatial gradient energy of the array.
 
     Parameters
     ----------
     array : Array
-        The array to calcuate the gradient energy for.
+        The array to calculate the gradient energy for.
 
     Returns
     -------
@@ -24,14 +23,14 @@ def get_GE(array : Array) -> Array:
     return np.hypot(grads_vec[0], grads_vec[1])
 
 
-def get_RGE(array : Array, epsilon : float = 1e-8) -> Array:
+def get_RGE(array: Array, epsilon: float = 1e-8) -> Array:  # TODO : Add epsilon
     """
-    Calcuates the spatial radial gradient energy of the array.
+    Calculates the spatial radial gradient energy of the array.
 
     Parameters
     ----------
     array : Array
-        The array to calcuate the radial gradient energy for.
+        The array to calculate the radial gradient energy for.
     epsilon : float
         A small value added to the radial values to help with gradient
         stability.
@@ -46,17 +45,18 @@ def get_RGE(array : Array, epsilon : float = 1e-8) -> Array:
 
     xnorm = positions[1]*grads_vec[0]
     ynorm = positions[0]*grads_vec[1]
+
     return np.square(xnorm + ynorm)
 
 
-def get_RWGE(array : Array, epsilon : float = 1e-8) -> Array:
+def get_RWGE(array: Array, epsilon: float = 1e-8) -> Array:
     """
-    Calcuates the spatial radially weighted gradient energy of the array.
+    Calculates the spatial radially weighted gradient energy of the array.
 
     Parameters
     ----------
     array : Array
-        The array to calcuate the radially weighted gradient energy for.
+        The array to calculate the radially weighted gradient energy for.
     epsilon : float
         A small value added to the radially weighted values to help with
         gradient stability.
@@ -74,14 +74,13 @@ def get_RWGE(array : Array, epsilon : float = 1e-8) -> Array:
 
     xnorm = radii_norm[1]*grads_vec[0]
     ynorm = radii_norm[0]*grads_vec[1]
+
     return np.square(xnorm + ynorm)
 
 
-def get_radial_mask(npixels : int,
-                    rmin    : Array,
-                    rmax    : Array) -> Array:
+def get_radial_mask(npixels: int, rmin: Array, rmax: Array) -> Array:
     """
-    Calcautes a binary radial mask, masking out radii below rmin, and above
+    Calculates a binary radial mask, masking out radii below rmin, and above
     rmax.
 
     Parameters
@@ -96,7 +95,7 @@ def get_radial_mask(npixels : int,
     Returns
     -------
     mask: Array
-        A mask with the the values below rmin and above rmax masked out.
+        A mask with the values below rmin and above rmax masked out.
     """
     radii = dlu.pixel_coords(npixels, polar=True)[0]
     return np.asarray((radii < rmax) & (radii > rmin), dtype=float)

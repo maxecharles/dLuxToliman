@@ -32,11 +32,11 @@ import dLuxToliman as dlT
 from matplotlib import pyplot as plt
 
 osys = dlT.TolimanOptics(psf_npixels=128, psf_oversample=1)  # creating Toliman optical system
-source = dlT.AlphaCen(nwavels=3, separation=8, position_angle=30)  # creating Alpha Centauri source
+source = dlT.AlphaCen(n_wavels=3, separation=8, position_angle=30)  # creating Alpha Centauri source
 psf = osys.model(source)  # running optical simulation
 
 # plotting
-plt.imshow(psf**.5, cmap='inferno')
+plt.imshow(psf ** .5, cmap='inferno')
 plt.title('Toliman $\sqrt{PSF}$')
 plt.show()
 ```
