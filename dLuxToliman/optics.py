@@ -14,41 +14,59 @@ AngularOptics = lambda: dLux.optics.AngularOptics
 
 
 class TolimanOptics(AngularOptics()):
-    """
-    A model of the Toliman optical system.
-
-    Its default parameters are:
-
-    """
 
     def __init__(self,
 
-                 wf_npixels=256,
-                 psf_npixels=256,
-                 psf_oversample=2,
-                 psf_pixel_scale=0.375,  # arcsec
+                 wf_npixels: int = 256,
+                 psf_npixels: int = 256,
+                 psf_oversample: int = 2,
+                 psf_pixel_scale: float = 0.375,  # arcsec
 
-                 mask=None,
+                 mask: Array = None,
 
                  radial_orders: Array = None,
                  noll_indices: Array = None,
-                 coefficients=None,
-                 # amplitude : float = 0.,
-                 # seed : int = 0,
+                 coefficients: Array = None,
 
-                 m1_diameter=0.125,
-                 m2_diameter=0.032,
+                 m1_diameter: float = 0.125,
+                 m2_diameter: float = 0.032,
 
-                 n_struts=3,
-                 strut_width=0.002,
-                 strut_rotation=-np.pi / 2
+                 n_struts: int = 3,
+                 strut_width: float = 0.002,
+                 strut_rotation: float = -np.pi / 2,
 
                  ) -> TolimanOptics:
         """
-        Constructs a simple model of the Toliman Optical Systems
+        A pre-built dLux optics layer of the Toliman optical system. Note TolimanOptics uses units of arcseconds.
 
-        In this class units are different:
-        - psf_pixel_scale is in unit of arcseconds
+        Parameters
+        ----------
+        wf_npixels : int
+            The pixel width the wavefront layer.
+        psf_npixels : int
+            The pixel width of the PSF.
+        psf_oversample : int
+            The Nyquist oversampling factor of the PSF.
+        psf_pixel_scale : float
+            The pixel scale of the PSF in arcseconds per pixel.
+        mask : Array
+            The diffractive mask array to apply to the wavefront layer.
+        radial_orders : Array
+            # TODO dunno
+        noll_indices : Array
+            The Noll indices of the Zernike polynomials to use.
+        coefficients : Array
+            The coefficients of the Zernike polynomials.
+        m1_diameter : float
+            The outer diameter of the primary mirror in metres.
+        m2_diameter : float
+            The inner diameter of the primary mirror in metres. TODO CHECK
+        n_struts : int
+            The number of struts blocking the primary mirror.
+        strut_width : float
+            The width of the struts in metres.
+        strut_rotation : float
+            The angular rotation of the struts in radians.
         """
 
         # Diameter
@@ -62,7 +80,9 @@ class TolimanOptics(AngularOptics()):
             coefficients=coefficients,
             secondary_ratio=m2_diameter / m1_diameter,
             nstruts=n_struts,
-            strut_ratio=strut_width / m1_diameter)
+            strut_ratio=strut_width / m1_diameter,
+            strut_rotation=strut_rotation,
+        )
 
         # Generate Mask
         if mask is None:
@@ -97,12 +117,6 @@ class TolimanOptics(AngularOptics()):
 
 
 class TolimanSpikes(TolimanOptics):
-    """
-    A model of the Toliman optical system.
-
-    Its default parameters are:
-
-    """
     grating_depth: float
     grating_period: float
     spike_npixels: int
@@ -119,9 +133,12 @@ class TolimanSpikes(TolimanOptics):
                  zernikes=None,
                  amplitude: float = 0.,
                  seed: int = 0,
+                 radial_orders: Array = None,
+                 noll_indices: Array = None,
+                 coefficients: Array = None,
 
-                 m1_diameter=0.13,  # Double check this
-                 m2_diameter=0.032,
+                 m1_diameter: float = 0.125,
+                 m2_diameter: float = 0.032,
 
                  n_struts=3,
                  strut_width=0.002,
@@ -132,12 +149,36 @@ class TolimanSpikes(TolimanOptics):
 
                  ) -> TolimanOptics:
         """
-        Constructs a simple model of the Toliman Optical Systems
+        A pre-built dLux optics layer of the Toliman optical system. Note TolimanOptics uses units of arcseconds.
 
-        In this class units are different:
-        - psf_pixel_scale is in unit of arcseconds
-        grating depth is in nm
-        grating period is in um
+        Parameters
+        ----------
+        wf_npixels : int
+            The pixel width the wavefront layer.
+        psf_npixels : int
+            The pixel width of the PSF.
+        psf_oversample : int
+            The Nyquist oversampling factor of the PSF.
+        psf_pixel_scale : float
+            The pixel scale of the PSF in arcseconds per pixel.
+        mask : Array
+            The diffractive mask array to apply to the wavefront layer.
+        radial_orders : Array
+            # TODO dunno
+        noll_indices : Array
+            The Noll indices of the Zernike polynomials to use.
+        coefficients : Array
+            The coefficients of the Zernike polynomials.
+        m1_diameter : float
+            The outer diameter of the primary mirror in metres.
+        m2_diameter : float
+            The inner diameter of the primary mirror in metres. TODO CHECK
+        n_struts : int
+            The number of struts blocking the primary mirror.
+        strut_width : float
+            The width of the struts in metres.
+        strut_rotation : float
+            The angular rotation of the struts in radians.
         """
 
         # Diameter
@@ -151,9 +192,9 @@ class TolimanSpikes(TolimanOptics):
             psf_oversample=psf_oversample,
             psf_pixel_scale=psf_pixel_scale,
             mask=mask,
-            zernikes=zernikes,
-            amplitude=amplitude,
-            seed=seed,
+            radial_orders=radial_orders,
+            noll_indices=noll_indices,
+            coefficients=coefficients,
             m1_diameter=m1_diameter,
             m2_diameter=m2_diameter,
             n_struts=n_struts,
