@@ -5,6 +5,9 @@ __all__ = ["Toliman"]
 
 
 class Toliman(dLux.instruments.BaseInstrument):
+    """
+    A pre-built dLux instrument object for the Toliman telescope.
+    """
     source: None
     optics: None
 
@@ -33,5 +36,5 @@ class Toliman(dLux.instruments.BaseInstrument):
 
     def perturb(self, X, parameters):  # TODO : fix this
         for parameter, x in zip(parameters, X):
-            self = self.add(parameter, x)
-        return self
+            perturbed_self = self.add(parameter, x)
+        return perturbed_self
