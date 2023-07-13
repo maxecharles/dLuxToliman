@@ -1,5 +1,5 @@
 name = "dLuxToliman"
-__version__ = "0.1.3"
+__version__ = "0.1.3.1"
 
 # Import as modules
 from . import optics
