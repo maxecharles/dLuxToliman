@@ -6,8 +6,8 @@ import dLux
 import dLux.utils as dlu
 
 # TODO check if this lambda was necessary
-Source = dLux.sources.BaseSource
-Optics = dLux.core.BaseOptics
+Source = lambda: dLux.sources.BaseSource
+Optics = lambda: dLux.core.BaseOptics
 
 __all__ = ["AlphaCen"]  # , "MixedAlphaCen"]
 
