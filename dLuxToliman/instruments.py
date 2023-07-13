@@ -33,6 +33,12 @@ class Toliman(dLux.instruments.BaseInstrument):
     def model(self):
         return self.optics.model(self.source)
 
+    @staticmethod
+    def _centre_and_model(optics, source, x, y):
+        """A function to set the source position and propagate through the optics"""
+        src = source.set(['x_position', 'y_position'], [x, y])
+        return optics.model(src)
+
     def jitter_model(self, radius: float, angle: float, n_psfs: int = 5, centre: tuple = (0, 0)):
         """
             Returns a jittered PSF by summing a number of shifted PSFs.
@@ -54,12 +60,7 @@ class Toliman(dLux.instruments.BaseInstrument):
                 The jittered PSF.
             """
 
-        def centre_and_model(optics, source, x, y):
-            """A function to set the source position and propagate through the optics"""
-            src = source.set(['x_position', 'y_position'], [x, y])
-            return optics.model(src)
-
-        vmap_prop = vmap(centre_and_model, in_axes=(None, None, 0, 0))
+        vmap_prop = vmap(_centre_and_model, in_axes=(None, None, 0, 0))
         pixel_scale = self.optics.psf_pixel_scale
 
         # converting to cartesian angular coordinates
