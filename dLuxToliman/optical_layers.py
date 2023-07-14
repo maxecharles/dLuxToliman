@@ -8,7 +8,8 @@ __all__ = ["ApplyBasisCLIMB"]
 OpticalLayer = lambda: dLux.optical_layers.OpticalLayer
 BasisLayer = lambda: dLux.optical_layers.BasisLayer
 
-# TODO write this class
+# TODO write this class: make it take arbitrary oversamples (its hardcoded to 3x),
+#  and take arbitrary output size (its hardcoded to 256)
 class ApplyBasisCLIMB(BasisLayer()):
     """
     Adds an array of binary phase values to the input wavefront from a set of
@@ -22,6 +23,8 @@ class ApplyBasisCLIMB(BasisLayer()):
     TODO: Many of the methods in the class still need doccumentation.
     TODO: This currently only outputs 256 pixel arrays and uses a 3x oversample,
     therefore requiring a 768 pixel basis array.
+
+    "This class is the crazy lady we keep in the attic, but turns out her name is actually Ben." - L. Desdoigts, 2023.
 
     Attributes
     ----------

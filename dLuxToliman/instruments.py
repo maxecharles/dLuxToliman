@@ -9,16 +9,44 @@ __all__ = ["Toliman"]
 class Toliman(dLux.instruments.BaseInstrument):
     """
     A pre-built dLux instrument object for the Toliman telescope.
+
+    Attributes
+    ----------
+    optics : dLux.core.BaseOptics
+        The optics object to be used in the instrument.
+    source : dLux.sources.BaseSource
+        The source object to be used in the instrument.
+
+    Methods
+    -------
+    normalise()
     """
-    source: None
+
     optics: None
+    source: None
 
     def __init__(self, optics, source):
+        """
+        Parameters
+        ----------
+        optics : dLux.core.BaseOptics
+            The optics object to be used in the instrument.
+        source : dLux.sources.BaseSource
+            The source object to be used in the instrument.
+        """
         self.optics = optics
         self.source = source
         super().__init__()
 
     def __getattr__(self, key):
+        """
+        Returns an attribute of the instrument given a key.
+
+        Parameters
+        ----------
+        key : str
+            The key of the attribute to be returned.
+        """
         for attribute in self.__dict__.values():
             if hasattr(attribute, key):
                 return getattr(attribute, key)
@@ -28,39 +56,40 @@ class Toliman(dLux.instruments.BaseInstrument):
                              f"{key}.")
 
     def normalise(self):
+        """
+        Normalises the source flux to 1.
+        """
         return self.set('source', self.source.normalise())
 
     def model(self):
+        """
+        Method to model the Instrument source through the optics, giving the PSF of the instrument.
+        """
         return self.optics.model(self.source)
-
-    @staticmethod
-    def _centre_and_model(optics, source, x, y):
-        """A function to set the source position and propagate through the optics"""
-        src = source.set(['x_position', 'y_position'], [x, y])
-        return optics.model(src)
 
     def jitter_model(self, radius: float, angle: float, n_psfs: int = 5, centre: tuple = (0, 0)):
         """
-            Returns a jittered PSF by summing a number of shifted PSFs.
+        Returns a jittered PSF by summing a number of shifted PSFs.
 
-            Parameters
-            ----------
-            radius : float
-                The radius of the jitter in pixels.
-            angle : float, optional
-                The angle of the jitter in radians, by default 0
-            n_psfs : int, optional
-                The number of PSFs to sum, by default 5
-            centre : tuple, optional
-                The centre of the jitter in arcseconds, by default (0,0)
+        Parameters
+        ----------
+        radius : float
+            The radius of the jitter in pixels.
+        angle : float, optional
+            The angle of the jitter in radians, by default 0
+        n_psfs : int, optional
+            The number of PSFs to sum, by default 5
+        centre : tuple, optional
+            The centre of the jitter in arcseconds, by default (0,0)
 
-            Returns
-            -------
-            np.ndarray
-                The jittered PSF.
-            """
-
-        vmap_prop = vmap(self._centre_and_model, in_axes=(None, None, 0, 0))
+        Returns
+        -------
+        np.ndarray
+            The jittered PSF.
+        """
+    
+        centre_and_model = lambda optics, source, x, y: optics.model(source.set(['x_position', 'y_position'], [x, y]))
+        vmap_prop = vmap(centre_and_model, in_axes=(None, None, 0, 0))
         pixel_scale = self.optics.psf_pixel_scale
 
         # converting to cartesian angular coordinates
@@ -70,6 +99,7 @@ class Toliman(dLux.instruments.BaseInstrument):
         ys = pixel_scale * np.linspace(-y, y, n_psfs) + centre[1]  # arcseconds
 
         psfs = vmap_prop(self.optics, self.source, xs, ys)
+
         return psfs.sum(0) / n_psfs  # adding and renormalising
 
     def full_model(self):
@@ -82,6 +112,9 @@ class Toliman(dLux.instruments.BaseInstrument):
         return self.optics.full_model(self.source)
 
     def perturb(self, X, parameters):  # TODO : fix this
+        """
+        Under Construction.
+        """
         for parameter, x in zip(parameters, X):
             perturbed_self = self.add(parameter, x)
         return perturbed_self
