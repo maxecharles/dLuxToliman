@@ -9,16 +9,44 @@ __all__ = ["Toliman"]
 class Toliman(dLux.instruments.BaseInstrument):
     """
     A pre-built dLux instrument object for the Toliman telescope.
+
+    Attributes
+    ----------
+    optics : dLux.core.BaseOptics
+        The optics object to be used in the instrument.
+    source : dLux.sources.BaseSource
+        The source object to be used in the instrument.
+
+    Methods
+    -------
+    normalise()
     """
-    source: None
+
     optics: None
+    source: None
 
     def __init__(self, optics, source):
+        """
+        Parameters
+        ----------
+        optics : dLux.core.BaseOptics
+            The optics object to be used in the instrument.
+        source : dLux.sources.BaseSource
+            The source object to be used in the instrument.
+        """
         self.optics = optics
         self.source = source
         super().__init__()
 
     def __getattr__(self, key):
+        """
+        Returns an attribute of the instrument given a key.
+
+        Parameters
+        ----------
+        key : str
+            The key of the attribute to be returned.
+        """
         for attribute in self.__dict__.values():
             if hasattr(attribute, key):
                 return getattr(attribute, key)
@@ -28,9 +56,15 @@ class Toliman(dLux.instruments.BaseInstrument):
                              f"{key}.")
 
     def normalise(self):
+        """
+        Normalises the source flux to 1.
+        """
         return self.set('source', self.source.normalise())
 
     def model(self):
+        """
+        Method to model the Instrument source through the optics, giving the PSF of the instrument.
+        """
         return self.optics.model(self.source)
 
     def jitter_model(self, radius: float, angle: float, n_psfs: int = 5, centre: tuple = (0, 0)):
@@ -81,6 +115,9 @@ class Toliman(dLux.instruments.BaseInstrument):
         return self.optics.full_model(self.source)
 
     def perturb(self, X, parameters):  # TODO : fix this
+        """
+        Under Construction.
+        """
         for parameter, x in zip(parameters, X):
             perturbed_self = self.add(parameter, x)
         return perturbed_self

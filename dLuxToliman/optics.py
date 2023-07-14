@@ -51,18 +51,25 @@ class TolimanOptics(AngularOptics()):
             The pixel scale of the PSF in arcseconds per pixel.
         mask : Array
             The diffractive mask array to apply to the wavefront layer.
-        radial_orders : Array
-            # TODO dunno
+        radial_orders : Array = None
+            The radial orders of the zernike polynomials to be used for the
+            aberrations. Input of [0, 1] would give [Piston, Tilt X, Tilt Y],
+            [1, 2] would be [Tilt X, Tilt Y, Defocus, Astig X, Astig Y], etc.
+            The order must be increasing but does not have to be consecutive.
+            If you want to specify specific zernikes across radial orders the
+            noll_indices argument should be used instead.
         noll_indices : Array
-            The Noll indices of the Zernike polynomials to use.
+            The zernike noll indices to be used for the aberrations. [1, 2, 3]
+            would give [Piston, Tilt X, Tilt Y], [2, 3, 4] would be [Tilt X,
+            Tilt Y, Defocus.
         coefficients : Array
             The coefficients of the Zernike polynomials.
         m1_diameter : float
             The outer diameter of the primary mirror in metres.
         m2_diameter : float
-            The inner diameter of the primary mirror in metres. TODO CHECK
+            The diameter of the secondary mirror in metres.
         n_struts : int
-            The number of struts blocking the primary mirror.
+            The number of uniformly spaced struts holding the secondary mirror.
         strut_width : float
             The width of the struts in metres.
         strut_rotation : float
@@ -117,6 +124,18 @@ class TolimanOptics(AngularOptics()):
 
 
 class TolimanSpikes(TolimanOptics):
+    """
+    A pre-built dLux optics layer of the Toliman optical system with diffraction spikes.
+
+    Attributes
+    ----------
+    grating_depth : float
+        The depth of the grating in nanometres.
+    grating_period : float
+        The period of the grating in microns.
+    spike_npixels : int
+        The pixel width of the diffraction spikes.
+    """
     grating_depth: float
     grating_period: float
     spike_npixels: int
@@ -130,9 +149,6 @@ class TolimanSpikes(TolimanOptics):
                  spike_npixels=512,
 
                  mask=None,
-                 zernikes=None,
-                 amplitude: float = 0.,
-                 seed: int = 0,
                  radial_orders: Array = None,
                  noll_indices: Array = None,
                  coefficients: Array = None,
@@ -149,7 +165,7 @@ class TolimanSpikes(TolimanOptics):
 
                  ) -> TolimanOptics:
         """
-        A pre-built dLux optics layer of the Toliman optical system. Note TolimanOptics uses units of arcseconds.
+        A pre-built dLux optics layer of the Toliman optical system with diffraction spikes.
 
         Parameters
         ----------
@@ -163,18 +179,25 @@ class TolimanSpikes(TolimanOptics):
             The pixel scale of the PSF in arcseconds per pixel.
         mask : Array
             The diffractive mask array to apply to the wavefront layer.
-        radial_orders : Array
-            # TODO dunno
+        radial_orders : Array = None
+            The radial orders of the zernike polynomials to be used for the
+            aberrations. Input of [0, 1] would give [Piston, Tilt X, Tilt Y],
+            [1, 2] would be [Tilt X, Tilt Y, Defocus, Astig X, Astig Y], etc.
+            The order must be increasing but does not have to be consecutive.
+            If you want to specify specific zernikes across radial orders the
+            noll_indices argument should be used instead.
         noll_indices : Array
-            The Noll indices of the Zernike polynomials to use.
+            The zernike noll indices to be used for the aberrations. [1, 2, 3]
+            would give [Piston, Tilt X, Tilt Y], [2, 3, 4] would be [Tilt X,
+            Tilt Y, Defocus.
         coefficients : Array
             The coefficients of the Zernike polynomials.
         m1_diameter : float
             The outer diameter of the primary mirror in metres.
         m2_diameter : float
-            The inner diameter of the primary mirror in metres. TODO CHECK
+            The diameter of the secondary mirror in metres.
         n_struts : int
-            The number of struts blocking the primary mirror.
+            The number of uniformly spaced struts holding the secondary mirror.
         strut_width : float
             The width of the struts in metres.
         strut_rotation : float
@@ -204,20 +227,34 @@ class TolimanSpikes(TolimanOptics):
 
     def model_spike(self, wavelengths, offset, weights, angles, sign, center):
         """
-        
+        Model a Toliman diffraction spike.
         """
         propagator = vmap(self.model_spike_mono, (0, None, 0, None, None))
         psfs = propagator(wavelengths, offset, angles, sign, center)
         psfs *= weights[..., None, None]
         return psfs.sum(0)
 
-    def model_spike_mono(self, wavelength, offset, angle, sign, center):
+    def model_spike_mono(self, wavelength, offset, angle, sign, centre):
         """
-        
-        """
+        Model a monochromatic Toliman diffraction spike.
+        "Yeah most of that code was hacked together trying to not burn my legs running it." - L. Desdoigts, 2023.
+
+        Parameters
+        ----------
+        wavelength : float
+            The wavelength of the monochromatic PSF.
+        offset : float
+            Stellar positional offset from the optical axis in arcseconds. TODO CHECK
+        angle : float
+            The diffraction angle in radians between the spike and the star, determined by the grating period.
+        sign : tuple
+            Determine which corner of the detector the spike is in. E.g. [-1, 1].
+        centre : tuple
+            The central location of the diffraction spike in pixels.
+e        """
+
         # Construct and tilt
-        wf = dLux.wavefronts.Wavefront(self.aperture.shape[-1], self.diameter,
-                                       wavelength)
+        wf = dLux.wavefronts.Wavefront(self.aperture.shape[-1], self.diameter, wavelength)
 
         # Addd offset and tilt
         wf = wf.tilt_wavefront(offset - sign * angle)
@@ -230,7 +267,7 @@ class TolimanSpikes(TolimanOptics):
         wf *= self.aberrations
 
         # Propagate
-        shift = sign * center
+        shift = sign * centre
         true_pixel_scale = self.psf_pixel_scale / self.psf_oversample
         pixel_scale = dlu.arcseconds_to_radians(true_pixel_scale)
         wf = wf.shifted_MFT(self.spike_npixels, pixel_scale, shift=shift)
@@ -238,9 +275,9 @@ class TolimanSpikes(TolimanOptics):
         # Return PSF
         return wf.psf
 
-    def get_diffraction_angles(self, wavelenghts):
+    def get_diffraction_angles(self, wavelengths):
         """
-        
+        Method to get the diffraction angles for a given wavelength set.
         """
         period = self.grating_period * 1e-6  # Convert to meters
         angles = np.arcsin(wavelengths / period) / np.sqrt(2)  # Radians
