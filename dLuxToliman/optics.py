@@ -136,6 +136,7 @@ class TolimanSpikes(TolimanOptics):
     spike_npixels : int
         The pixel width of the diffraction spikes.
     """
+
     grating_depth: float
     grating_period: float
     spike_npixels: int
@@ -149,6 +150,7 @@ class TolimanSpikes(TolimanOptics):
                  spike_npixels=512,
 
                  mask=None,
+                 
                  radial_orders: Array = None,
                  noll_indices: Array = None,
                  coefficients: Array = None,
@@ -251,7 +253,7 @@ class TolimanSpikes(TolimanOptics):
             Determine which corner of the detector the spike is in. E.g. [-1, 1].
         centre : tuple
             The central location of the diffraction spike in pixels.
-e        """
+        """
 
         # Construct and tilt
         wf = dLux.wavefronts.Wavefront(self.aperture.shape[-1], self.diameter, wavelength)

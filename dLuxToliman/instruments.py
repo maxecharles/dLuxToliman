@@ -69,30 +69,26 @@ class Toliman(dLux.instruments.BaseInstrument):
 
     def jitter_model(self, radius: float, angle: float, n_psfs: int = 5, centre: tuple = (0, 0)):
         """
-            Returns a jittered PSF by summing a number of shifted PSFs.
+        Returns a jittered PSF by summing a number of shifted PSFs.
 
-            Parameters
-            ----------
-            radius : float
-                The radius of the jitter in pixels.
-            angle : float, optional
-                The angle of the jitter in radians, by default 0
-            n_psfs : int, optional
-                The number of PSFs to sum, by default 5
-            centre : tuple, optional
-                The centre of the jitter in arcseconds, by default (0,0)
+        Parameters
+        ----------
+        radius : float
+            The radius of the jitter in pixels.
+        angle : float, optional
+            The angle of the jitter in radians, by default 0
+        n_psfs : int, optional
+            The number of PSFs to sum, by default 5
+        centre : tuple, optional
+            The centre of the jitter in arcseconds, by default (0,0)
 
-            Returns
-            -------
-            np.ndarray
-                The jittered PSF.
-            """
-
-        def centre_and_model(optics, source, x, y):
-            """A function to set the source position and propagate through the optics"""
-            src = source.set(['x_position', 'y_position'], [x, y])
-            return optics.model(src)
-
+        Returns
+        -------
+        np.ndarray
+            The jittered PSF.
+        """
+    
+        centre_and_model = lambda optics, source, x, y: optics.model(source.set(['x_position', 'y_position'], [x, y]))
         vmap_prop = vmap(centre_and_model, in_axes=(None, None, 0, 0))
         pixel_scale = self.optics.psf_pixel_scale
 
@@ -103,7 +99,8 @@ class Toliman(dLux.instruments.BaseInstrument):
         ys = pixel_scale * np.linspace(-y, y, n_psfs) + centre[1]  # arcseconds
 
         psfs = vmap_prop(self.optics, self.source, xs, ys)
-        return psfs.sum(0) / n_psfs  # git radding and renormalising
+
+        return psfs.sum(0) / n_psfs  # adding and renormalising
 
     def full_model(self):
         """
