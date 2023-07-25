@@ -41,17 +41,18 @@ class AlphaCen(dLux.sources.BaseSource):
     weights: Array
     wavelengths: Array
 
-    def __init__(self,
-                 n_wavels=3,
-                 separation=10.,  # arcseconds
-                 position_angle=90,  # degrees
-                 x_position=0.,  # arcseconds
-                 y_position=0.,  # arcseconds
-                 log_flux=6.832,  # Photons
-                 contrast=3.37,
-                 bandpass=(530, 640),  # nm
-                 weights=None,
-                 ):
+    def __init__(
+        self,
+        n_wavels=3,
+        separation=10.0,  # arcseconds
+        position_angle=90,  # degrees
+        x_position=0.0,  # arcseconds
+        y_position=0.0,  # arcseconds
+        log_flux=6.832,  # Photons
+        contrast=3.37,
+        bandpass=(530, 640),  # nm
+        weights=None,
+    ):
         """
         Parameters
         ----------
@@ -87,7 +88,7 @@ class AlphaCen(dLux.sources.BaseSource):
 
         # Spectrum (Uniform)  # TODO : Phoenix Models?
         self.bandpass = bandpass
-        self.wavelengths = 1e-9 * np.linspace(bandpass[0], bandpass[1], n_wavels)
+        self.wavelengths = np.linspace(bandpass[0], bandpass[1], n_wavels)
         if weights is None:
             self.weights = np.ones((2, n_wavels)) / n_wavels
         else:
@@ -97,7 +98,7 @@ class AlphaCen(dLux.sources.BaseSource):
         """
         Normalises the source flux to 1.
         """
-        return self.multiply('weights', 1 / self.weights.sum(1)[:, None])
+        return self.multiply("weights", 1 / self.weights.sum(1)[:, None])
 
     @property
     def xy_positions(self):
@@ -119,7 +120,7 @@ class AlphaCen(dLux.sources.BaseSource):
         """
         Returns the raw integrated fluxes of Alpha Centauri A and B respectively, in units of photons.
         """
-        flux = (10 ** self.log_flux) / 2
+        flux = (10**self.log_flux) / 2
         flux_A = 2 * self.contrast * flux / (1 + self.contrast)
         flux_B = 2 * flux / (1 + self.contrast)
         return np.array([flux_A, flux_B])
@@ -157,7 +158,7 @@ class AlphaCen(dLux.sources.BaseSource):
 
         # Model PSF
         input_weights = weights * fluxes[:, None]
-        psfs = propagator(self.wavelengths, positions)
+        psfs = propagator(1e-9 * self.wavelengths, positions)
         psfs *= input_weights[..., None, None]
         return psfs.sum((0, 1))
 
@@ -179,26 +180,26 @@ def get_mixed_alpha_cen_spectra(nwavels: int, bandpass: tuple = (530, 640)):
     # Importing PySynPhot here to prevent issues with Google colab install, for example
     import pysynphot as S
 
-    alpha_cen_a_spectrum: float = S.Icat("phoenix",
-                                         5790,  # Surface temp (K)
-                                         0.2,  # Metalicity (Unit?)
-                                         4.0, )  # Surface gravity (unit?)
-    alpha_cen_a_spectrum.convert('flam')
-    alpha_cen_a_spectrum.convert('m')
+    alpha_cen_a_spectrum: float = S.Icat(
+        "phoenix",
+        5790,  # Surface temp (K)
+        0.2,  # Metalicity (Unit?)
+        4.0,
+    )  # Surface gravity (unit?)
+    alpha_cen_a_spectrum.convert("flam")
+    alpha_cen_a_spectrum.convert("m")
 
-    alpha_cen_b_spectrum: float = S.Icat("phoenix",
-                                         5260,  # Surface temp (K)
-                                         0.23,  # Metalicity (Unit?)
-                                         4.37)  # Surface gravity (unit?)
-    alpha_cen_b_spectrum.convert('flam')
-    alpha_cen_b_spectrum.convert('m')
+    alpha_cen_b_spectrum: float = S.Icat(
+        "phoenix", 5260, 0.23, 4.37  # Surface temp (K)  # Metalicity (Unit?)
+    )  # Surface gravity (unit?)
+    alpha_cen_b_spectrum.convert("flam")
+    alpha_cen_b_spectrum.convert("m")
 
-    spot_spectrum: float = S.Icat("phoenix",
-                                  4000,  # Surface temp (K)
-                                  0.23,  # Metalicity (Unit?)
-                                  4.37)  # Surface gravity (unit?)
-    spot_spectrum.convert('flam')
-    spot_spectrum.convert('m')
+    spot_spectrum: float = S.Icat(
+        "phoenix", 4000, 0.23, 4.37  # Surface temp (K)  # Metalicity (Unit?)
+    )  # Surface gravity (unit?)
+    spot_spectrum.convert("flam")
+    spot_spectrum.convert("m")
 
     # Full spectrum
     wavelengths = 1e-9 * np.linspace(bandpass[0], bandpass[1], nwavels)
@@ -230,27 +231,36 @@ class MixedAlphaCen(AlphaCen):
     model()
         Models the mixed Alpha Cen source through the given optics.
     """
+
     mixing: float
 
-    def __init__(self,
-                 n_wavels=3,
-                 separation=10.,  # arcseconds
-                 position_angle=90,  # degrees
-                 x_position=0.,  # arcseconds
-                 y_position=0.,  # arcseconds
-                 log_flux=6.832,  # Photons
-                 contrast=3.37,
-                 mixing=0.05,
-                 bandpass=(530, 640),  # nm
-                 weights=None,
-                 ):
-        """
-        
-        """
+    def __init__(
+        self,
+        n_wavels=3,
+        separation=10.0,  # arcseconds
+        position_angle=90,  # degrees
+        x_position=0.0,  # arcseconds
+        y_position=0.0,  # arcseconds
+        log_flux=6.832,  # Photons
+        contrast=3.37,
+        mixing=0.05,
+        bandpass=(530, 640),  # nm
+        weights=None,
+    ):
+        """ """
         self.mixing = mixing
         weights, wavelengths = get_mixed_alpha_cen_spectra(n_wavels)
-        super().__init__(n_wavels, separation, position_angle, x_position, y_position,
-                         log_flux, contrast, bandpass, weights)
+        super().__init__(
+            n_wavels,
+            separation,
+            position_angle,
+            x_position,
+            y_position,
+            log_flux,
+            contrast,
+            bandpass,
+            weights,
+        )
 
     @property
     def norm_weights(self):
