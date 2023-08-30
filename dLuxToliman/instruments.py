@@ -67,14 +67,14 @@ class Toliman(dLux.instruments.BaseInstrument):
         """
         return self.optics.model(self.source)
 
-    def jitter_model(self, radius: float, angle: float, n_psfs: int = 5, centre: tuple = (0, 0)):
+    def linear_jitter_model(self, magnitude: float, angle: float, n_psfs: int = 5, centre: tuple = (0, 0)):
         """
-        Returns a jittered PSF by summing a number of shifted PSFs.
+        Returns a radially jittered PSF by summing a number of shifted PSFs along a straight line.
 
         Parameters
         ----------
-        radius : float
-            The radius of the jitter in pixels.
+        magnitude : float
+            The magnitude, or length, of the jitter in pixels.
         angle : float, optional
             The angle of the jitter in radians, by default 0
         n_psfs : int, optional
@@ -93,8 +93,8 @@ class Toliman(dLux.instruments.BaseInstrument):
         pixel_scale = self.optics.psf_pixel_scale
 
         # converting to cartesian angular coordinates
-        x = radius / 2 * np.cos(angle)
-        y = radius / 2 * np.sin(angle)
+        x = magnitude / 2 * np.cos(angle)
+        y = magnitude / 2 * np.sin(angle)
         xs = pixel_scale * np.linspace(-x, x, n_psfs) + centre[0]  # arcseconds
         ys = pixel_scale * np.linspace(-y, y, n_psfs) + centre[1]  # arcseconds
 
