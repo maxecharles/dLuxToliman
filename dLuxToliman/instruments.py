@@ -67,7 +67,7 @@ class Toliman(dLux.instruments.BaseInstrument):
         """
         return self.optics.model(self.source)
 
-    def jitter_model(self, radius: float, angle: float, n_psfs: int = 5, centre: tuple = (0, 0)):
+    def radial_jitter_model(self, radius: float, angle: float, n_psfs: int = 5, centre: tuple = (0, 0)):
         """
         Returns a jittered PSF by summing a number of shifted PSFs.
 
