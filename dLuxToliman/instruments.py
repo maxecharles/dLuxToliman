@@ -6,7 +6,7 @@ from jax import vmap
 __all__ = ["Toliman"]
 
 
-class Toliman(dLux.instruments.BaseInstrument):
+class Toliman(dLux.Instrument):
     """
     A pre-built dLux instrument object for the Toliman telescope.
 
@@ -52,14 +52,15 @@ class Toliman(dLux.instruments.BaseInstrument):
                 return getattr(attribute, key)
         # if key in self.sources.keys():
         #     return self.sources[key]
-        raise AttributeError(f"{self.__class__.__name__} has no attribute "
-                             f"{key}.")
+        raise AttributeError(
+            f"{self.__class__.__name__} has no attribute " f"{key}."
+        )
 
     def normalise(self):
         """
         Normalises the source flux to 1.
         """
-        return self.set('source', self.source.normalise())
+        return self.set("source", self.source.normalise())
 
     def model(self):
         """
@@ -67,7 +68,13 @@ class Toliman(dLux.instruments.BaseInstrument):
         """
         return self.optics.model(self.source)
 
-    def linear_jitter_model(self, magnitude: float, angle: float, n_psfs: int = 5, centre: tuple = (0, 0)):
+    def linear_jitter_model(
+        self,
+        magnitude: float,
+        angle: float,
+        n_psfs: int = 5,
+        centre: tuple = (0, 0),
+    ):
         """
         Returns a radially jittered PSF by summing a number of shifted PSFs along a straight line.
 
@@ -87,8 +94,10 @@ class Toliman(dLux.instruments.BaseInstrument):
         np.ndarray
             The jittered PSF.
         """
-    
-        centre_and_model = lambda optics, source, x, y: optics.model(source.set(['x_position', 'y_position'], [x, y]))
+
+        centre_and_model = lambda optics, source, x, y: optics.model(
+            source.set(["x_position", "y_position"], [x, y])
+        )
         vmap_prop = vmap(centre_and_model, in_axes=(None, None, 0, 0))
         pixel_scale = self.optics.psf_pixel_scale
 

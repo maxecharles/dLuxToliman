@@ -1,7 +1,9 @@
 from __future__ import annotations
 import jax.numpy as np
-import dLux.utils as dlu
 from jax import Array, vmap
+from jax.scipy.ndimage import map_coordinates
+import dLux.utils as dlu
+import dLux.layers as dll
 import dLux
 import os
 
@@ -10,32 +12,26 @@ MixedAlphaCen = lambda: dLuxToliman.sources.MixedAlphaCen
 __all__ = ["TolimanOptics"]
 
 OpticalLayer = lambda: dLux.optical_layers.OpticalLayer
-AngularOptics = lambda: dLux.optics.AngularOptics
+AngularOptics = lambda: dLux.optical_systems.AngularOpticalSystem
 
 
 class TolimanOptics(AngularOptics()):
-
-    def __init__(self,
-
-                 wf_npixels: int = 256,
-                 psf_npixels: int = 256,
-                 psf_oversample: int = 2,
-                 psf_pixel_scale: float = 0.375,  # arcsec
-
-                 mask: Array = None,
-
-                 radial_orders: Array = None,
-                 noll_indices: Array = None,
-                 coefficients: Array = None,
-
-                 m1_diameter: float = 0.125,
-                 m2_diameter: float = 0.032,
-
-                 n_struts: int = 3,
-                 strut_width: float = 0.002,
-                 strut_rotation: float = -np.pi / 2,
-
-                 ) -> TolimanOptics:
+    def __init__(
+        self,
+        wf_npixels: int = 256,
+        psf_npixels: int = 256,
+        oversample: int = 2,
+        psf_pixel_scale: float = 0.375,  # arcsec
+        mask: Array = None,
+        radial_orders: Array = None,
+        noll_indices: Array = None,
+        coefficients: Array = None,
+        m1_diameter: float = 0.125,
+        m2_diameter: float = 0.032,
+        n_struts: int = 3,
+        strut_width: float = 0.002,
+        strut_rotation: float = -np.pi / 2,
+    ) -> TolimanOptics:
         """
         A pre-built dLux optics layer of the Toliman optical system. Note TolimanOptics uses units of arcseconds.
 
@@ -45,7 +41,7 @@ class TolimanOptics(AngularOptics()):
             The pixel width the wavefront layer.
         psf_npixels : int
             The pixel width of the PSF.
-        psf_oversample : int
+        oversample : int
             The Nyquist oversampling factor of the PSF.
         psf_pixel_scale : float
             The pixel scale of the PSF in arcseconds per pixel.
@@ -80,37 +76,97 @@ class TolimanOptics(AngularOptics()):
         diameter = m1_diameter
 
         # Generate Aperture
-        aperture = dLux.apertures.ApertureFactory(
-            npixels=wf_npixels,
-            radial_orders=radial_orders,
-            noll_indices=noll_indices,
-            coefficients=coefficients,
-            secondary_ratio=m2_diameter / m1_diameter,
-            nstruts=n_struts,
-            strut_ratio=strut_width / m1_diameter,
-            strut_rotation=strut_rotation,
-        )
+        coords = dlu.pixel_coords(5 * wf_npixels, diameter)
+        outer = dlu.circle(coords, m1_diameter / 2)
+        inner = dlu.circle(coords, m2_diameter / 2, invert=True)
+        spiders = dlu.spider(coords, strut_width, [0, 120, 240])
+        transmission = dlu.combine([outer, inner, spiders], 5)
+
+        # Hack this in for now, will be in dLux eventually
+        if radial_orders is not None:
+            radial_orders = np.array(radial_orders)
+
+            if (radial_orders < 0).any():
+                raise ValueError("Radial orders must be >= 0")
+
+            noll_indices = []
+            for order in radial_orders:
+                start = dlu.triangular_number(order)
+                stop = dlu.triangular_number(order + 1)
+                noll_indices.append(np.arange(start, stop) + 1)
+            noll_indices = np.concatenate(noll_indices).astype(int)
+
+        if noll_indices is None:
+            aperture = dll.TransmissiveLayer(transmission, normalise=True)
+        else:
+            # Generate Basis
+            coords = dlu.pixel_coords(wf_npixels, diameter)
+            basis = np.array(
+                [dlu.zernike(i, coords, m1_diameter) for i in noll_indices]
+            )
+
+            if coefficients is None:
+                coefficients = np.zeros(len(noll_indices))
+
+            # Combine into BasisOptic class
+            aperture = dll.BasisOptic(
+                basis, transmission, coefficients, normalise=True
+            )
+
+        # # Generate Aperture
+        # aperture = dLux.apertures.ApertureFactory(
+        #     npixels=wf_npixels,
+        #     radial_orders=radial_orders,
+        #     noll_indices=noll_indices,
+        #     coefficients=coefficients,
+        #     secondary_ratio=m2_diameter / m1_diameter,
+        #     nstruts=n_struts,
+        #     strut_ratio=strut_width / m1_diameter,
+        #     strut_rotation=strut_rotation,
+        # )
+
+        # Put this here for now, will be in dLux eventually
+        def scale_array(array: Array, size_out: int, order: int) -> Array:
+            xs = np.linspace(0, array.shape[0], size_out)
+            xs, ys = np.meshgrid(xs, xs)
+            return map_coordinates(array, np.array([ys, xs]), order=order)
 
         # Generate Mask
         if mask is None:
-            path = os.path.join(os.path.dirname(__file__), "diffractive_pupil.npy")
-            mask = dlu.scale_array(np.load(path), wf_npixels, order=1)
+            path = os.path.join(
+                os.path.dirname(__file__), "diffractive_pupil.npy"
+            )
+            # arr_in = np.load(path)
+            # ratio = wf_npixels / arr_in.shape[-1]
+            mask = scale_array(np.load(path), wf_npixels, order=1)
 
             # Enforce full binary
-            mask = mask.at[np.where(mask <= 0.5)].set(0.)
-            mask = mask.at[np.where(mask > 0.5)].set(1.)
+            mask = mask.at[np.where(mask <= 0.5)].set(0.0)
+            mask = mask.at[np.where(mask > 0.5)].set(1.0)
 
             # Enforce full binary
-            mask = dlu.phase_to_opd(mask * np.pi, 585e-9)
+            mask = dlu.phase2opd(mask * np.pi, 585e-9)
+
+            # Turn into optic
+            mask = dll.AberratedLayer(mask)
+
+        layers = [("aperture", aperture), ("pupil", mask)]
 
         # Propagator Properties
         psf_npixels = int(psf_npixels)
-        psf_oversample = float(psf_oversample)
+        oversample = float(oversample)
         psf_pixel_scale = float(psf_pixel_scale)
 
-        super().__init__(wf_npixels=wf_npixels, diameter=diameter,
-                         aperture=aperture, mask=mask, psf_npixels=psf_npixels,
-                         psf_oversample=psf_oversample, psf_pixel_scale=psf_pixel_scale)
+        super().__init__(
+            wf_npixels=wf_npixels,
+            diameter=diameter,
+            layers=layers,
+            # aperture=aperture,
+            # mask=mask,
+            psf_npixels=psf_npixels,
+            oversample=oversample,
+            psf_pixel_scale=psf_pixel_scale,
+        )
 
     def _apply_aperture(self, wavelength, offset):
         """
@@ -141,31 +197,25 @@ class TolimanSpikes(TolimanOptics):
     grating_period: float
     spike_npixels: int
 
-    def __init__(self,
-
-                 wf_npixels=256,
-                 psf_npixels=256,
-                 psf_oversample=2,
-                 psf_pixel_scale=0.375,  # arcsec
-                 spike_npixels=512,
-
-                 mask=None,
-                 
-                 radial_orders: Array = None,
-                 noll_indices: Array = None,
-                 coefficients: Array = None,
-
-                 m1_diameter: float = 0.125,
-                 m2_diameter: float = 0.032,
-
-                 n_struts=3,
-                 strut_width=0.002,
-                 strut_rotation=-np.pi / 2,
-
-                 grating_depth=100.,  # nm
-                 grating_period=300,  # um
-
-                 ) -> TolimanOptics:
+    def __init__(
+        self,
+        wf_npixels=256,
+        psf_npixels=256,
+        oversample=2,
+        psf_pixel_scale=0.375,  # arcsec
+        spike_npixels=512,
+        mask=None,
+        radial_orders: Array = None,
+        noll_indices: Array = None,
+        coefficients: Array = None,
+        m1_diameter: float = 0.125,
+        m2_diameter: float = 0.032,
+        n_struts=3,
+        strut_width=0.002,
+        strut_rotation=-np.pi / 2,
+        grating_depth=100.0,  # nm
+        grating_period=300,  # um
+    ) -> TolimanOptics:
         """
         A pre-built dLux optics layer of the Toliman optical system with diffraction spikes.
 
@@ -175,7 +225,7 @@ class TolimanSpikes(TolimanOptics):
             The pixel width the wavefront layer.
         psf_npixels : int
             The pixel width of the PSF.
-        psf_oversample : int
+        oversample : int
             The Nyquist oversampling factor of the PSF.
         psf_pixel_scale : float
             The pixel scale of the PSF in arcseconds per pixel.
@@ -214,7 +264,7 @@ class TolimanSpikes(TolimanOptics):
         super().__init__(
             wf_npixels=wf_npixels,
             psf_npixels=psf_npixels,
-            psf_oversample=psf_oversample,
+            oversample=oversample,
             psf_pixel_scale=psf_pixel_scale,
             mask=mask,
             radial_orders=radial_orders,
@@ -224,7 +274,7 @@ class TolimanSpikes(TolimanOptics):
             m2_diameter=m2_diameter,
             n_struts=n_struts,
             strut_width=strut_width,
-            strut_rotation=strut_rotation
+            strut_rotation=strut_rotation,
         )
 
     def model_spike(self, wavelengths, offset, weights, angles, sign, center):
@@ -256,7 +306,9 @@ class TolimanSpikes(TolimanOptics):
         """
 
         # Construct and tilt
-        wf = dLux.wavefronts.Wavefront(self.aperture.shape[-1], self.diameter, wavelength)
+        wf = dLux.wavefronts.Wavefront(
+            self.aperture.shape[-1], self.diameter, wavelength
+        )
 
         # Addd offset and tilt
         wf = wf.tilt_wavefront(offset - sign * angle)
@@ -270,8 +322,8 @@ class TolimanSpikes(TolimanOptics):
 
         # Propagate
         shift = sign * centre
-        true_pixel_scale = self.psf_pixel_scale / self.psf_oversample
-        pixel_scale = dlu.arcseconds_to_radians(true_pixel_scale)
+        true_pixel_scale = self.psf_pixel_scale / self.oversample
+        pixel_scale = dlu.arcsec2rad(true_pixel_scale)
         wf = wf.shifted_MFT(self.spike_npixels, pixel_scale, shift=shift)
 
         # Return PSF
@@ -283,18 +335,16 @@ class TolimanSpikes(TolimanOptics):
         """
         period = self.grating_period * 1e-6  # Convert to meters
         angles = np.arcsin(wavelengths / period) / np.sqrt(2)  # Radians
-        return dlu.radians_to_arcseconds(angles)
+        return dlu.rad2arcsec(angles)
 
     def model_spikes(self, wavelengths, offset, weights):
-        """
-        
-        """
+        """ """
         # Get center shift values
         period = self.grating_period * 1e-6  # Convert to meters
         angles = np.arcsin(wavelengths / period) / np.sqrt(2)  # Radians
         # angles = get_diffraction_angles(wavelengths)
-        true_pixel_scale = self.psf_pixel_scale / self.psf_oversample
-        pixel_scale = dlu.arcseconds_to_radians(true_pixel_scale)
+        true_pixel_scale = self.psf_pixel_scale / self.oversample
+        pixel_scale = dlu.arcsec2rad(true_pixel_scale)
         center = angles.mean(0) // pixel_scale
 
         # Model
@@ -331,9 +381,8 @@ class TolimanSpikes(TolimanOptics):
         central_weights = weights
         propagator = vmap(self.propagate, in_axes=(None, 0, 0))
         central_psfs = propagator(
-            central_wavelegths,
-            positions,
-            central_weights)
+            central_wavelegths, positions, central_weights
+        )
         central_psfs *= central_flux * fluxes[:, None, None]
 
         # Model spikes
