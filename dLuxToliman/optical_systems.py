@@ -5,17 +5,18 @@ from jax.scipy.ndimage import map_coordinates
 import dLux.utils as dlu
 import dLux.layers as dll
 import dLux
+import dLuxToliman
 import os
 
 MixedAlphaCen = lambda: dLuxToliman.sources.MixedAlphaCen
 
-__all__ = ["TolimanOptics"]
+__all__ = ["TolimanOpticalSystem"]
 
 OpticalLayer = lambda: dLux.optical_layers.OpticalLayer
-AngularOptics = lambda: dLux.optical_systems.AngularOpticalSystem
+AngularOpticalSystem = lambda: dLux.optical_systems.AngularOpticalSystem
 
 
-class TolimanOptics(AngularOptics()):
+class TolimanOpticalSystem(AngularOpticalSystem()):
     def __init__(
         self,
         wf_npixels: int = 256,
@@ -31,7 +32,7 @@ class TolimanOptics(AngularOptics()):
         n_struts: int = 3,
         strut_width: float = 0.002,
         strut_rotation: float = -np.pi / 2,
-    ) -> TolimanOptics:
+    ):
         """
         A pre-built dLux optics layer of the Toliman optical system. Note TolimanOptics uses units of arcseconds.
 
@@ -164,7 +165,7 @@ class TolimanOptics(AngularOptics()):
             # aperture=aperture,
             # mask=mask,
             psf_npixels=psf_npixels,
-            oversample=oversample,
+            oversample=int(oversample),
             psf_pixel_scale=psf_pixel_scale,
         )
 
@@ -179,7 +180,7 @@ class TolimanOptics(AngularOptics()):
         return wf
 
 
-class TolimanSpikes(TolimanOptics):
+class TolimanSpikes(TolimanOpticalSystem):
     """
     A pre-built dLux optics layer of the Toliman optical system with diffraction spikes.
 
@@ -215,7 +216,7 @@ class TolimanSpikes(TolimanOptics):
         strut_rotation=-np.pi / 2,
         grating_depth=100.0,  # nm
         grating_period=300,  # um
-    ) -> TolimanOptics:
+    ):
         """
         A pre-built dLux optics layer of the Toliman optical system with diffraction spikes.
 
@@ -277,12 +278,12 @@ class TolimanSpikes(TolimanOptics):
             strut_rotation=strut_rotation,
         )
 
-    def model_spike(self, wavelengths, offset, weights, angles, sign, center):
+    def model_spike(self, wavelengths, offset, weights, angles, sign, centre):
         """
         Model a Toliman diffraction spike.
         """
         propagator = vmap(self.model_spike_mono, (0, None, 0, None, None))
-        psfs = propagator(wavelengths, offset, angles, sign, center)
+        psfs = propagator(wavelengths, offset, angles, sign, centre)
         psfs *= weights[..., None, None]
         return psfs.sum(0)
 
@@ -311,7 +312,7 @@ class TolimanSpikes(TolimanOptics):
         )
 
         # Addd offset and tilt
-        wf = wf.tilt_wavefront(offset - sign * angle)
+        wf = wf.tilt(offset - sign * angle)
 
         # Apply aperture and normalise
         wf *= self.aperture
@@ -324,7 +325,7 @@ class TolimanSpikes(TolimanOptics):
         shift = sign * centre
         true_pixel_scale = self.psf_pixel_scale / self.oversample
         pixel_scale = dlu.arcsec2rad(true_pixel_scale)
-        wf = wf.shifted_MFT(self.spike_npixels, pixel_scale, shift=shift)
+        wf = wf.propagate(self.spike_npixels, pixel_scale, shift=shift)
 
         # Return PSF
         return wf.psf
@@ -350,7 +351,7 @@ class TolimanSpikes(TolimanOptics):
         # Model
         signs = np.array([[-1, +1], [+1, +1], [-1, -1], [+1, -1]])
         propagator = vmap(self.model_spike, (None, None, None, None, 0, None))
-        return propagator(wavelengths, offset, weights, angles, signs, center)
+        return propagator(wavelengths, offset, weights, angles, signs, centre)
 
     def full_model(self, source, cent_nwavels=5):
         """

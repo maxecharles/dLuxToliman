@@ -146,6 +146,10 @@ class AlphaCen(Source()):
         ----------
         optics : Optics
             The optics to propagate the source through.
+        return_wf
+            Whether or not to return the wavefront.
+        return_psf
+            Whether or not to return the PSF.
 
         Returns
         -------
@@ -194,6 +198,7 @@ def get_mixed_alpha_cen_spectra(nwavels: int, bandpass: tuple = (530, 640)):
     """
 
     # Importing PySynPhot here to prevent issues with Google colab install, for example
+    print("Warning: Method is not fully implemented.")
     import pysynphot as S
 
     alpha_cen_a_spectrum: float = S.Icat(
@@ -292,7 +297,7 @@ class MixedAlphaCen(AlphaCen):
         # Normalise
         return weights / weights.sum(1)[:, None]
 
-    def model(self: Source, optics: Optics) -> Array:
+    def model(self: Source, optics: OpticalSystem) -> Array:
         """
         Models the PSF by propagating the AlphaCen source through the given optics.
 
