@@ -1,1 +1,2 @@
-dLux>=0.13.0
+dLux==0.14.*
+zodiax

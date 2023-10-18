@@ -23,7 +23,9 @@ def get_GE(array: Array) -> Array:
     return np.hypot(grads_vec[0], grads_vec[1])
 
 
-def get_RGE(array: Array, epsilon: float = 1e-8) -> Array:  # TODO : Add epsilon
+def get_RGE(
+    array: Array, epsilon: float = 1e-8
+) -> Array:  # TODO : Add epsilon
     """
     Calculates the spatial radial gradient energy of the array.
 
@@ -40,11 +42,12 @@ def get_RGE(array: Array, epsilon: float = 1e-8) -> Array:  # TODO : Add epsilon
     array : Array
         The array of radial gradient energies.
     """
-    positions = dlu.pixel_coords(array.shape[0])
+    npix = array.shape[0]
+    positions = dlu.pixel_coords(npix, npix)
     grads_vec = np.gradient(array)
 
-    xnorm = positions[1]*grads_vec[0]
-    ynorm = positions[0]*grads_vec[1]
+    xnorm = positions[1] * grads_vec[0]
+    ynorm = positions[0] * grads_vec[1]
 
     return np.square(xnorm + ynorm)
 
@@ -67,13 +70,13 @@ def get_RWGE(array: Array, epsilon: float = 1e-8) -> Array:
         The array of radial radially weighted energies.
     """
     npix = array.shape[0]
-    positions = dlu.pixel_coords(npix)
-    radii = dlu.pixel_coords(npix, polar=True)[0]
-    radii_norm = positions/(radii + epsilon)
+    positions = dlu.pixel_coords(npix, npix)
+    radii = dlu.pixel_coords(npix, npix, polar=True)[0]
+    radii_norm = positions / (radii + epsilon)
     grads_vec = np.gradient(array)
 
-    xnorm = radii_norm[1]*grads_vec[0]
-    ynorm = radii_norm[0]*grads_vec[1]
+    xnorm = radii_norm[1] * grads_vec[0]
+    ynorm = radii_norm[0] * grads_vec[1]
 
     return np.square(xnorm + ynorm)
 
@@ -97,5 +100,5 @@ def get_radial_mask(npixels: int, rmin: Array, rmax: Array) -> Array:
     mask: Array
         A mask with the values below rmin and above rmax masked out.
     """
-    radii = dlu.pixel_coords(npixels, polar=True)[0]
+    radii = dlu.pixel_coords(npixels, npixels, polar=True)[0]
     return np.asarray((radii < rmax) & (radii > rmin), dtype=float)

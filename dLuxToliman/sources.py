@@ -1,16 +1,17 @@
 from __future__ import annotations
 from jax import Array, vmap
 import jax.numpy as np
-import dLux
+from zodiax import filter_vmap
 import dLux.utils as dlu
+import dLux
 
-Source = lambda: dLux.sources.BaseSource
-Optics = lambda: dLux.core.BaseOptics
+Source = lambda: dLux.BaseSource
+Optics = lambda: dLux.BaseOpticalSystem
 
 __all__ = ["AlphaCen"]  # , "MixedAlphaCen"]
 
 
-class AlphaCen(dLux.sources.BaseSource):
+class AlphaCen(Source()):
     """
     A parametrised model of the Alpha Centauri binary pair.
 
@@ -107,13 +108,13 @@ class AlphaCen(dLux.sources.BaseSource):
         """
         # Calculate
         r = self.separation / 2
-        phi = dlu.deg_to_rad(self.position_angle)
+        phi = dlu.deg2rad(self.position_angle)
         sep_vec = np.array([r * np.sin(phi), r * np.cos(phi)])
 
         # Add to Position vectors
         pos_vec = np.array([self.x_position, self.y_position])
         output_vec = np.array([pos_vec + sep_vec, pos_vec - sep_vec])
-        return dlu.arcsec_to_rad(output_vec)
+        return dlu.arcsec2rad(output_vec)
 
     @property
     def raw_fluxes(self):
@@ -132,7 +133,12 @@ class AlphaCen(dLux.sources.BaseSource):
         """
         return self.weights / self.weights.sum(1)[:, None]
 
-    def model(self: Source(), optics: Optics()) -> Array:
+    def model(
+        self: Source(),
+        optics: Optics(),
+        return_wf: bool = False,
+        return_psf: bool = False,
+    ) -> Array:
         """
         Models the PSF by propagating the AlphaCen source through the given optics.
 
@@ -140,27 +146,41 @@ class AlphaCen(dLux.sources.BaseSource):
         ----------
         optics : Optics
             The optics to propagate the source through.
+        return_wf
+            Whether or not to return the wavefront.
+        return_psf
+            Whether or not to return the PSF.
 
         Returns
         -------
         psf : Array
             The PSF of the source modelled through the optics.
         """
-
         # Get Values
         weights = self.norm_weights
         fluxes = self.raw_fluxes
         positions = self.xy_positions
-
-        # vmap propagator
-        source_propagator = vmap(optics.propagate_mono, in_axes=(0, None))
-        propagator = vmap(source_propagator, in_axes=(None, 0))
+        wavelengths = 1e-9 * self.wavelengths
 
         # Model PSF
         input_weights = weights * fluxes[:, None]
-        psfs = propagator(1e-9 * self.wavelengths, positions)
-        psfs *= input_weights[..., None, None]
-        return psfs.sum((0, 1))
+
+        # Return wf case is simple
+        prop_fn = lambda position, weight: optics.propagate(
+            wavelengths, position, weight, return_wf, return_psf
+        )
+        output = filter_vmap(prop_fn)(positions, input_weights)
+
+        # Return wf is simple case
+        if return_wf:
+            return output
+
+        # Return psf just requires constructing object
+        if return_psf:
+            return dLux.PSF(output.data.sum(0), output.pixel_scale.mean())
+
+        # Return array is simple
+        return output.sum(0)
 
 
 def get_mixed_alpha_cen_spectra(nwavels: int, bandpass: tuple = (530, 640)):
@@ -178,6 +198,7 @@ def get_mixed_alpha_cen_spectra(nwavels: int, bandpass: tuple = (530, 640)):
     """
 
     # Importing PySynPhot here to prevent issues with Google colab install, for example
+    print("Warning: Method is not fully implemented.")
     import pysynphot as S
 
     alpha_cen_a_spectrum: float = S.Icat(
@@ -276,7 +297,7 @@ class MixedAlphaCen(AlphaCen):
         # Normalise
         return weights / weights.sum(1)[:, None]
 
-    def model(self: Source, optics: Optics) -> Array:
+    def model(self: Source, optics: OpticalSystem) -> Array:
         """
         Models the PSF by propagating the AlphaCen source through the given optics.
 

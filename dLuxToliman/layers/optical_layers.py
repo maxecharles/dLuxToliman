@@ -8,6 +8,7 @@ __all__ = ["ApplyBasisCLIMB"]
 OpticalLayer = lambda: dLux.optical_layers.OpticalLayer
 BasisLayer = lambda: dLux.optical_layers.BasisLayer
 
+
 # TODO write this class: make it take arbitrary oversamples (its hardcoded to 3x),
 #  and take arbitrary output size (its hardcoded to 256)
 class ApplyBasisCLIMB(BasisLayer()):
@@ -36,14 +37,17 @@ class ApplyBasisCLIMB(BasisLayer()):
         The target wavelength at which a perfect anti-phase relationship is
         applied via the OPD.
     """
+
     # basis            : Array
     # coefficients     : Array
     ideal_wavelength: Array
 
-    def __init__(self: OpticalLayer(),
-                 basis: Array,
-                 ideal_wavelength: Array,
-                 coefficients: Array = None) -> OpticalLayer():
+    def __init__(
+        self: OpticalLayer(),
+        basis: Array,
+        ideal_wavelength: Array,
+        coefficients: Array = None,
+    ) -> OpticalLayer():
         """
         Constructor for the ApplyBasisCLIMB class.
 
@@ -54,7 +58,7 @@ class ApplyBasisCLIMB(BasisLayer()):
             be a 3d array of shape (nterms, npixels, npixels), with the final
             two dimensions matching that of the wavefront at time of
             application. This is currently required to be a nx768x768 shaped
-            array. 
+            array.
         ideal_wavelength : Array
             The target wavelength at which a perfect anti-phase relationship is
             applied via the OPD.
@@ -82,7 +86,8 @@ class ApplyBasisCLIMB(BasisLayer()):
         # assert self.ideal_wavelength.ndim == 0, ("ideal_wavelength must be a "
         #                                          "scalar array.")
 
-    def __call__(self: OpticalLayer(), wavefront: Wavefront) -> Wavefront:
+    # def __call__(self: OpticalLayer(), wavefront: Wavefront) -> Wavefront:
+    def apply(self: OpticalLayer(), wavefront: Wavefront) -> Wavefront:
         """
         Generates and applies the binary OPD array to the wavefront in a
         differentiable manner.
@@ -124,8 +129,9 @@ class ApplyBasisCLIMB(BasisLayer()):
         return binary_phase
 
     def lsq_params(self, img):
-        xx, yy = np.meshgrid(np.linspace(0, 1, img.shape[0]),
-                             np.linspace(0, 1, img.shape[1]))
+        xx, yy = np.meshgrid(
+            np.linspace(0, 1, img.shape[0]), np.linspace(0, 1, img.shape[1])
+        )
         A = np.vstack([xx.ravel(), yy.ravel(), np.ones_like(xx).ravel()]).T
         matrix = np.linalg.inv(np.dot(A.T, A)).dot(A.T)
         return matrix, xx, yy, A
@@ -144,7 +150,13 @@ class ApplyBasisCLIMB(BasisLayer()):
         x1, x2 = np.min(np.array([x1, x2])), np.max(np.array([x1, x2]))
         x1, x2 = np.max(np.array([x1, 0])), np.min(np.array([x2, 1]))
 
-        dummy = x1 + (-c / b) * x2 - (0.5 * a / b) * x2 ** 2 - (-c / b) * x1 + (0.5 * a / b) * x1 ** 2
+        dummy = (
+            x1
+            + (-c / b) * x2
+            - (0.5 * a / b) * x2**2
+            - (-c / b) * x1
+            + (0.5 * a / b) * x1**2
+        )
 
         # Set the regions where there is a defined gradient
         dummy = np.where(dummy >= 0.5, dummy, 1 - dummy)
