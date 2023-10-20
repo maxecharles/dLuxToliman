@@ -20,8 +20,8 @@ class TolimanOpticalSystem(AngularOpticalSystem()):
     def __init__(
         self,
         wf_npixels: int = 256,
-        psf_npixels: int = 256,
-        oversample: int = 2,
+        psf_npixels: int = 128,
+        oversample: int = 4,
         psf_pixel_scale: float = 0.375,  # arcsec
         mask: Array = None,
         radial_orders: Array = None,
