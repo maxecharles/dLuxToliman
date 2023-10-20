@@ -9,7 +9,7 @@ description = "A repo to hold the canonical dLux Toliman models."
 readme = "README.md"
 
 #[dependencies]
-#dLux = "*"  # TODO HELP update once main merge
+#dLux = "0.14.*"
 #jax = "*"
 #jaxlib = "*"
 #
