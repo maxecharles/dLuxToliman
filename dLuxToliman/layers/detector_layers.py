@@ -6,18 +6,20 @@ from jax import numpy as np
 from jax import Array
 from jax.scipy.stats import multivariate_normal
 
+__all__ = ["GaussianJitter", "SHMJitter"]
+
 Image = lambda: dLux.images.Image
 DetectorLayer = lambda: dLux.layers.detector_layers.DetectorLayer
 
 
-class BaseJitter(DetectorLayer):
+class BaseJitter(DetectorLayer()):
     """
     Base class for jitter layers.
     """
 
     kernel_size: int
 
-    def __init__(self: DetectorLayer, kernel_size):
+    def __init__(self: DetectorLayer, kernel_size: int):
         """
         Constructor for the BaseJitter class.
 
@@ -26,11 +28,8 @@ class BaseJitter(DetectorLayer):
         kernel_size : odd
             The size of the convolution kernel in pixels to use.
         """
-
+        self.kernel_size = kernel_size
         super().__init__()
-        if kernel_size % 2 == 0:
-            raise ValueError("kernel_size must be an odd integer")
-        self.kernel_size = int(kernel_size)
 
     def apply(self: DetectorLayer, image: Image()) -> Image():
         """
@@ -46,7 +45,7 @@ class BaseJitter(DetectorLayer):
         image : Image
             The transformed image.
         """
-        kernel = self.generate_kernel(dLux.utils.rad_to_arcsec(image.pixel_scale))
+        kernel = self.generate_kernel(dLux.utils.rad2arcsec(image.pixel_scale))
 
         return image.convolve(kernel)
 
@@ -70,6 +69,8 @@ class GaussianJitter(BaseJitter):
         The shear of the jitter.
     phi : float, degrees
         The angle of the jitter.
+    kernel_size : int, odd
+        The size of the convolution kernel in pixels to use.
     kernel_oversample : int
         The oversampling factor for the kernel generation.
     """
@@ -108,16 +109,21 @@ class GaussianJitter(BaseJitter):
         kernel_size : int = 10
             The size of the convolution kernel in pixels to use.
         """
-        super().__init__(kernel_size=kernel_size)
+
+        # checking for odd kernel size
+        if kernel_size % 2 == 0:
+            raise ValueError("kernel_size must be an odd integer")
 
         # checking shear is valid
         if shear >= 1 or shear < 0:
             raise ValueError("shear must lie on the interval [0, 1)")
 
+        super().__init__(kernel_size)
+
         self.r = r
         self.shear = shear
         self.phi = phi
-        self.kernel_oversample = int(kernel_oversample)
+        self.kernel_oversample = kernel_oversample
 
     @property
     def covariance_matrix(self):
@@ -192,7 +198,7 @@ class GaussianJitter(BaseJitter):
         return kernel / np.sum(kernel)
 
 
-class SHMJitter(DetectorLayer):
+class SHMJitter(BaseJitter):
     """
     A class to simulate the effect of a one-dimensional simple harmonic jitter.
     This would be used in the case that the jitter is dominated by a single
@@ -203,10 +209,10 @@ class SHMJitter(DetectorLayer):
     phi: float
 
     def __init__(
-        self: DetectorLayer,
+        self: BaseJitter,
         A: float,  # amplitude in arcseconds
         phi: float,  # angle
-        pixel_scale: float,  # pixel scale in arcseconds per pixel
+        kernel_size: int = 11,
     ):
         """
         Constructor for the ApplySHMJitter class.
@@ -217,19 +223,29 @@ class SHMJitter(DetectorLayer):
             The amplitude of the oscillation.
         phi : float, deg
             The angle of the jitter in degrees.
-
+        kernel_size : int = 9
+            The size of the convolution kernel in pixels to use. It is important for
+            simple harmonic jitter that the kernel size is large enough to capture
+            the full extent of the jitter. The optimal_kernel_size method will return
+            a value for kernel_size that it recommended, or at least is a lower bound
+            on usable values.
         """
+
+        # setting parameters
+        if A < 0:
+            raise ValueError("A must be positive")
+        if A == 0:
+            A = 1e-10  # avoiding divide by zero errors
 
         self.A = A
         self.phi = phi
-        self.pixel_scale = pixel_scale
 
-        super.__init__(kernel_size=self.kernel_size)
+        # calling parent constructor
+        super().__init__(kernel_size)
 
-    @property
-    def kernel_size(self) -> int:
+    def optimal_kernel_size(self, pixel_scale: float) -> int:
         """
-        Calculates the kernel size in pixels.
+        Calculates the recommended kernel size in pixels for a given pixel scale.
 
         Parameters
         ----------
@@ -241,9 +257,8 @@ class SHMJitter(DetectorLayer):
         kernel_size : int
             The kernel size in pixels.
         """
-        kernel_size = int(np.ceil(2 * self.A / self.pixel_scale))
-        if kernel_size % 2 == 0:
-            kernel_size += 1  # ensuring odd integer
+        kernel_size = np.ceil(2 * self.A / pixel_scale).astype(int)
+        kernel_size += 1 - kernel_size % 2  # ensuring odd integer
 
         return kernel_size
 
@@ -253,7 +268,7 @@ class SHMJitter(DetectorLayer):
         """
         return np.arcsin(x / self.A)
 
-    def generate_kernel(self, pixel_scale=None) -> Array:
+    def generate_kernel(self, pixel_scale: float) -> Array:
         """
         Generates the normalised multivariate Gaussian kernel.
 
@@ -268,28 +283,25 @@ class SHMJitter(DetectorLayer):
             The normalised convolution kernel.
         """
 
-        if pixel_scale is None:
-            pixel_scale = self.pixel_scale
-
         # coordinates of pixel edges in one dimension
         pixel_edges = dlu.nd_coords(
             npixels=self.kernel_size + 1, pixel_scales=pixel_scale
         )
 
-        # Setting outer pixels to -A and A to allow evaluation of outer pixels
-        effective_pixel_edges = pixel_edges.at[0].set(-self.A).at[-1].set(self.A)
+        """THE NAN ISSUE GOES AWAY WHEN U COMMENT OUT THESE TWO LINES."""
+        # replacing all pixels boundary values outside the oscillation domain with -A or A
+        pixel_edges = np.where(pixel_edges < -self.A, -self.A, pixel_edges)
+        pixel_edges = np.where(pixel_edges > self.A, self.A, pixel_edges)
 
         # calculating the fluxes of the pixels in one dimension (ignoring the factor of pi)
-        fluxes = self.CDF(effective_pixel_edges[1:]) - self.CDF(
-            effective_pixel_edges[:-1]
-        )
+        fluxes = self.CDF(pixel_edges[1:]) - self.CDF(pixel_edges[:-1])
 
-        # padding of zeros for extrapolating to the full 2D kernel
-        zero_pad = np.zeros(shape=(len(fluxes) // 2, len(fluxes)))
+        # a padding of zeros for extrapolating to the full 2D kernel
+        zero_pad = np.zeros(shape=(self.kernel_size // 2, self.kernel_size))
 
         # padding and rotating kernel
         kernel = dlu.rotate(
-            np.vstack((zero_pad, fluxes, zero_pad)), np.radians(self.phi), order=3
+            np.vstack((zero_pad, fluxes, zero_pad)), np.radians(self.phi)
         )
 
         return kernel / np.sum(kernel)  # returning normalised kernel
