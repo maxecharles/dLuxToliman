@@ -54,9 +54,7 @@ class Toliman(dLux.Telescope):
                 return getattr(attribute, key)
         # if key in self.sources.keys():
         #     return self.sources[key]
-        raise AttributeError(
-            f"{self.__class__.__name__} has no attribute " f"{key}."
-        )
+        raise AttributeError(f"{self.__class__.__name__} has no attribute " f"{key}.")
 
     def normalise(self):
         """

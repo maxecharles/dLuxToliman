@@ -110,9 +110,7 @@ class TolimanOpticalSystem(AngularOpticalSystem()):
                 coefficients = np.zeros(len(noll_indices))
 
             # Combine into BasisOptic class
-            aperture = dll.BasisOptic(
-                basis, transmission, coefficients, normalise=True
-            )
+            aperture = dll.BasisOptic(basis, transmission, coefficients, normalise=True)
 
         # # Generate Aperture
         # aperture = dLux.apertures.ApertureFactory(
@@ -134,9 +132,7 @@ class TolimanOpticalSystem(AngularOpticalSystem()):
 
         # Generate Mask
         if mask is None:
-            path = os.path.join(
-                os.path.dirname(__file__), "diffractive_pupil.npy"
-            )
+            path = os.path.join(os.path.dirname(__file__), "diffractive_pupil.npy")
             # arr_in = np.load(path)
             # ratio = wf_npixels / arr_in.shape[-1]
             mask = scale_array(np.load(path), wf_npixels, order=1)
@@ -381,9 +377,7 @@ class TolimanSpikes(TolimanOpticalSystem):
         central_wavelegths = wavelengths
         central_weights = weights
         propagator = vmap(self.propagate, in_axes=(None, 0, 0))
-        central_psfs = propagator(
-            central_wavelegths, positions, central_weights
-        )
+        central_psfs = propagator(central_wavelegths, positions, central_weights)
         central_psfs *= central_flux * fluxes[:, None, None]
 
         # Model spikes

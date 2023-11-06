@@ -23,9 +23,7 @@ def get_GE(array: Array) -> Array:
     return np.hypot(grads_vec[0], grads_vec[1])
 
 
-def get_RGE(
-    array: Array, epsilon: float = 1e-8
-) -> Array:  # TODO : Add epsilon
+def get_RGE(array: Array, epsilon: float = 1e-8) -> Array:  # TODO : Add epsilon
     """
     Calculates the spatial radial gradient energy of the array.
 
