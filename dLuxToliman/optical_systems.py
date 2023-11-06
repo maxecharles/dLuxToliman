@@ -346,7 +346,7 @@ class TolimanSpikes(TolimanOpticalSystem):
         # angles = get_diffraction_angles(wavelengths)
         true_pixel_scale = self.psf_pixel_scale / self.oversample
         pixel_scale = dlu.arcsec2rad(true_pixel_scale)
-        center = angles.mean(0) // pixel_scale
+        centre = angles.mean(0) // pixel_scale
 
         # Model
         signs = np.array([[-1, +1], [+1, +1], [-1, -1], [+1, -1]])
