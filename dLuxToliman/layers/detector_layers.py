@@ -9,7 +9,7 @@ from jax.scipy.stats import multivariate_normal
 __all__ = ["GaussianJitter", "SHMJitter"]
 
 Image = lambda: dLux.images.Image
-DetectorLayer = dLux.layers.detector_layers.DetectorLayer
+DetectorLayer = lambda: dLux.layers.detector_layers.DetectorLayer
 
 
 class BaseJitter(DetectorLayer()):
