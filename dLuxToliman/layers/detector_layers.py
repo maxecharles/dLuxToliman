@@ -232,10 +232,8 @@ class SHMJitter(BaseJitter):
         """
 
         # setting parameters
-        if A < 0:
+        if A < 0.:
             raise ValueError("A must be positive")
-        if A == 0:
-            A = 1e-10  # avoiding divide by zero errors
 
         self.A = A
         self.phi = phi
@@ -262,11 +260,27 @@ class SHMJitter(BaseJitter):
 
         return kernel_size
 
+    @staticmethod
+    def machine_epsilon(dtype):
+        """
+        Method to fetch machine epsilon for a given dtype (e.g. float32, float64).
+        """
+        info = np.finfo(dtype)
+        return info.eps
+
     def CDF(self, x):
         """
         The cumulative distribution function for the simple harmonic motion.
+
+        Parameters
+        ----------
+        x : Array
+            The input values.
+        eps : float
+            A optional small offset to avoid divide by zero errors.
         """
-        return np.arcsin(x / self.A)
+        # TODO add compatibility for self.A = 0
+        return np.arcsin(dlu.nandiv(x, self.A))
 
     def generate_kernel(self, pixel_scale: float) -> Array:
         """
@@ -288,10 +302,11 @@ class SHMJitter(BaseJitter):
             npixels=self.kernel_size + 1, pixel_scales=pixel_scale
         )
 
-        """THE NAN ISSUE GOES AWAY WHEN U COMMENT OUT THESE TWO LINES."""
+        # used to offset to avoid gradient evaluation at discontinuous boundary
+        eps = self.machine_epsilon(pixel_edges.dtype)
+
         # replacing all pixels boundary values outside the oscillation domain with -A or A
-        pixel_edges = np.where(pixel_edges < -self.A, -self.A, pixel_edges)
-        pixel_edges = np.where(pixel_edges > self.A, self.A, pixel_edges)
+        pixel_edges = np.clip(pixel_edges, -self.A + eps, self.A - eps)
 
         # calculating the fluxes of the pixels in one dimension (ignoring the factor of pi)
         fluxes = self.CDF(pixel_edges[1:]) - self.CDF(pixel_edges[:-1])
