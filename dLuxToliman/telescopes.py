@@ -5,7 +5,7 @@ from jax import vmap, Array
 from dLux import BaseSource, BaseOpticalSystem
 
 
-__all__ = ["Toliman"]
+__all__ = ["Toliman", "JitteredToliman"]
 
 
 class Toliman(dLux.Telescope):
