@@ -1,26 +1,27 @@
 name = "dLuxToliman"
-__version__ = "0.1.2"
+__version__ = "0.3.0"
 
 # Import as modules
-from . import optics
-from . import optical_layers
+from . import optical_systems
+from . import layers
 from . import gradient_energy
-from . import instruments
+from . import telescopes
 from . import sources
 
 # Wavefronts and Optics
-from .optics import *
-from .optical_layers import *
+from .optical_systems import *
+from .layers.optical_layers import *
+from .layers.detector_layers import *
 from .gradient_energy import *
-from .instruments import *
+from .telescopes import *
 from .sources import *
 
 # Add to __all__
 modules = [
-    optics,
-    optical_layers,
+    optical_systems,
+    layers,
     gradient_energy,
-    instruments,
+    telescopes,
     sources,
 ]
 

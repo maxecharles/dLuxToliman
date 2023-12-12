@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dLuxToliman"
-version = "0.1.2"
+version = "0.3.0"
 description = "A repo to hold the canonical dLux Toliman models."
 readme = "README.md"
 
 #[dependencies]
-#dLux = "*"  # TODO HELP update once main merge
+#dLux = "0.14.*"
 #jax = "*"
 #jaxlib = "*"
 #
