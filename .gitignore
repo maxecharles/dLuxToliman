@@ -5,3 +5,5 @@ dist/
 build/
 dLuxToliman.egg-info/
 .idea/
+.vscode/
+.gitignore
