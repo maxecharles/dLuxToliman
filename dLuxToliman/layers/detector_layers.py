@@ -8,7 +8,7 @@ from jax.scipy.stats import multivariate_normal
 
 __all__ = ["GaussianJitter", "SHMJitter"]
 
-Image = lambda: dLux.images.Image
+PSF = lambda: dLux.PSFs.PSF
 DetectorLayer = lambda: dLux.layers.detector_layers.DetectorLayer
 
 
@@ -31,7 +31,7 @@ class BaseJitter(DetectorLayer()):
         self.kernel_size = kernel_size
         super().__init__()
 
-    def apply(self: DetectorLayer, image: Image()) -> Image():
+    def apply(self: DetectorLayer, psf: PSF()) -> PSF():
         """
         Applies the layer to the Image.
 
@@ -45,9 +45,9 @@ class BaseJitter(DetectorLayer()):
         image : Image
             The transformed image.
         """
-        kernel = self.generate_kernel(dLux.utils.rad2arcsec(image.pixel_scale))
+        kernel = self.generate_kernel(dLux.utils.rad2arcsec(psf.pixel_scale))
 
-        return image.convolve(kernel)
+        return psf.convolve(kernel)
 
     @abstractmethod
     def generate_kernel(self, pixel_scale: float) -> Array:
@@ -86,7 +86,7 @@ class GaussianJitter(BaseJitter):
         shear: float = 0,
         phi: float = 0,
         kernel_size: int = 11,
-        kernel_oversample: int = 4,
+        kernel_oversample: int = 1,
     ):
         """
         Constructor for the ApplyJitter class.
@@ -161,8 +161,8 @@ class GaussianJitter(BaseJitter):
         # Compute the covariance matrix
         covariance_matrix = np.dot(
             np.dot(R, base_matrix), R.T
-        )  # TODO use dLux.utils.rotate
-
+        )
+        
         return covariance_matrix
 
     def generate_kernel(self, pixel_scale: float) -> Array:
