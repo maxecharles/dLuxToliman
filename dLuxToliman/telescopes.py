@@ -14,7 +14,7 @@ class Toliman(dLux.Telescope):
 
     Attributes
     ----------
-    osys : dLux.core.BaseOptics
+    optics : dLux.core.BaseOptics
         The optics object to be used in the telescope.
     source : dLux.sources.BaseSource
         The source object to be used in the telescope.
@@ -24,21 +24,21 @@ class Toliman(dLux.Telescope):
     normalise()
     """
 
-    osys: BaseOpticalSystem
+    optics: BaseOpticalSystem
     source: BaseSource
 
-    def __init__(self, osys, source):
+    def __init__(self, optics, source):
         """
         Parameters
         ----------
-        osys : dLux.core.BaseOptics
+        optics : dLux.core.BaseOptics
             The optical system to be used in the telescope.
         source : dLux.sources.BaseSource
             The source object to be used in the telescope.
         """
-        self.osys = osys
+        self.optics = optics
         self.source = source
-        super().__init__(osys, source)
+        super().__init__(optics, source)
 
     def __getattr__(self, key):
         """
@@ -70,7 +70,7 @@ class Toliman(dLux.Telescope):
         watch it die" - L. Desdoigts, 2023.
         """
         # TODO may break in dLux 0.14
-        return self.osys.full_model(self.source)
+        return self.optics.full_model(self.source)
 
     def perturb(self, X, parameters):
         """
@@ -97,7 +97,7 @@ class JitteredToliman(Toliman):
 
     def __init__(
         self,
-        osys,
+        optics,
         source,
         jitter_mag: Array | float,
         jitter_angle: Array | float,
@@ -107,7 +107,7 @@ class JitteredToliman(Toliman):
         """
         Parameters
         ----------
-        osys : dLux.core.BaseOptics
+        optics : dLux.core.BaseOptics
             The optical system to be used in the telescope.
         source : dLux.sources.BaseSource
             The source object to be used in the telescope.
@@ -121,7 +121,7 @@ class JitteredToliman(Toliman):
             The shape of the jitter. Either "linear" or "shm".
         """
 
-        super().__init__(osys, source)  # calling super
+        super().__init__(optics, source)  # calling super
         self.jitter_mag = np.array(jitter_mag, dtype=np.float64)
         self.jitter_angle = np.array(jitter_angle, dtype=np.float64)
         if n_psfs < 2:
