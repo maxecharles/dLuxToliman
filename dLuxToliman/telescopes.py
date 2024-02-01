@@ -22,6 +22,11 @@ class Toliman(dLux.Telescope):
     Methods
     -------
     normalise()
+        Normalises the source flux to 1.
+    full_model()
+        Models with diffraction spikes (experimental).
+    perturb(X, parameters)
+        Under Construction.
     """
 
     optics: BaseOpticalSystem
@@ -88,6 +93,26 @@ class JitteredToliman(Toliman):
     This is done by modelling and summing offset PSFs - as a result, the compute
     time increases linearly with the number of PSFs. The jitter is assumed to be
     either a linear smear of simple harmonic vibration.
+
+    Attributes
+    ----------
+    optics : dLux.core.BaseOptics
+        The optics object to be used in the telescope.
+    source : dLux.sources.BaseSource
+        The source object to be used in the telescope.
+    jitter_mag : Array | float
+        The magnitude of the jitter in arcseconds.
+    jitter_angle : Array | float
+        The angle of the jitter in degrees.
+    n_psfs : int
+        The number of PSFs to be modelled.
+    jitter_shape : str
+        The shape of the jitter. Either "linear" or "shm".
+
+    Methods
+    -------
+    jitter_model()
+        Models the jittered PSF.
     """
 
     jitter_mag: Array | float
@@ -134,7 +159,7 @@ class JitteredToliman(Toliman):
         self.jitter_shape = jitter_shape
 
     @staticmethod
-    def get_bounds(xs):
+    def _get_bounds(xs):
         """
         Helper method to grab the integration bounds for shm jitter_model.
         """
@@ -155,7 +180,7 @@ class JitteredToliman(Toliman):
         )
 
     @staticmethod
-    def machine_epsilon(dtype):
+    def _machine_epsilon(dtype):
         """
         Method to fetch machine epsilon for a given dtype (e.g. float32, float64).
 
@@ -173,7 +198,7 @@ class JitteredToliman(Toliman):
         """
         return np.arcsin(np.divide(x, self.jitter_mag / 2))
 
-    def centre_and_model(self, x, y):
+    def _centre_and_model(self, x, y):
         """
         Function to offset the source and model the PSF. This is vmapped over
         in the jitter_model method.
@@ -194,7 +219,7 @@ class JitteredToliman(Toliman):
         y = np.sin(dLux.utils.deg2rad(self.jitter_angle))
 
         # grabbing machine epsilon to avoid function evaluation at the asymptote
-        eps = self.machine_epsilon(self.jitter_mag.dtype)
+        eps = self._machine_epsilon(self.jitter_mag.dtype)
 
         # generating the base array for PSF positions
         spacing = np.linspace(
@@ -211,13 +236,13 @@ class JitteredToliman(Toliman):
 
         # for simple harmonic jitter
         if self.jitter_shape == "shm":
-            bounds = self.get_bounds(spacing)  # grabbing bounds for integration
+            bounds = self._get_bounds(spacing)  # grabbing bounds for integration
             # weighting by value of integral between bounds
             weights = self.inv_shm(bounds[:-1]) - self.inv_shm(bounds[1:])
             weights /= weights.sum()  # normalising
 
         # vmapping over all PSF positions
-        psfs = vmap(self.centre_and_model, in_axes=(0, 0))(xs, ys)
+        psfs = vmap(self._centre_and_model, in_axes=(0, 0))(xs, ys)
 
         return np.tensordot(
             psfs, weights, axes=(0, 0)

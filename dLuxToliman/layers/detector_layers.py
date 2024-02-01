@@ -14,7 +14,7 @@ DetectorLayer = lambda: dLux.layers.detector_layers.DetectorLayer
 
 class BaseJitter(DetectorLayer()):
     """
-    Base class for jitter layers.
+    Base class for jitter layers. Apply method applies a convolution.
     """
 
     kernel_size: int
@@ -37,13 +37,13 @@ class BaseJitter(DetectorLayer()):
 
         Parameters
         ----------
-        image : Image
-            The image to operate on.
+        psf : PSF
+            The PSF object to operate on.
 
         Returns
         -------
-        image : Image
-            The transformed image.
+        psf : PSF
+            The convolved PSF object.
         """
         kernel = self.generate_kernel(dLux.utils.rad2arcsec(psf.pixel_scale))
 
@@ -51,13 +51,16 @@ class BaseJitter(DetectorLayer()):
 
     @abstractmethod
     def generate_kernel(self, pixel_scale: float) -> Array:
+        """
+        Generates the convolution kernel to be applied.
+        """
         pass
 
 
 class GaussianJitter(BaseJitter):
     """
-    Convolves the image with a Gaussian kernel parameterised by the standard
-    deviation (sigma).
+    Convolves the image with a multivariate Gaussian kernel parameterised by the
+    magnitude, shear and angle.
 
     Attributes
     ----------
@@ -159,10 +162,8 @@ class GaussianJitter(BaseJitter):
         )
 
         # Compute the covariance matrix
-        covariance_matrix = np.dot(
-            np.dot(R, base_matrix), R.T
-        )
-        
+        covariance_matrix = np.dot(np.dot(R, base_matrix), R.T)
+
         return covariance_matrix
 
     def generate_kernel(self, pixel_scale: float) -> Array:
@@ -232,7 +233,7 @@ class SHMJitter(BaseJitter):
         """
 
         # setting parameters
-        if A < 0.:
+        if A < 0.0:
             raise ValueError("A must be positive")
 
         self.A = A
