@@ -7,11 +7,12 @@ name = "dLuxToliman"
 version = "0.3.0"
 description = "A repo to hold the canonical dLux Toliman models."
 readme = "README.md"
+dynamic = ["urls", "classifiers", "authors", "requires-python"]
 
-#[dependencies]
-#dLux = "0.14.*"
-#jax = "*"
-#jaxlib = "*"
-#
-#[test]
-#[scripts]
+[dependencies]
+dLux = "0.14.*"
+jax = "*"
+jaxlib = "*"
+
+[test]
+[scripts]

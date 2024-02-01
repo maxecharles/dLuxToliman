@@ -8,13 +8,13 @@ from jax.scipy.stats import multivariate_normal
 
 __all__ = ["GaussianJitter", "SHMJitter"]
 
-Image = lambda: dLux.images.Image
+PSF = lambda: dLux.PSFs.PSF
 DetectorLayer = lambda: dLux.layers.detector_layers.DetectorLayer
 
 
 class BaseJitter(DetectorLayer()):
     """
-    Base class for jitter layers.
+    Base class for jitter layers. Apply method applies a convolution.
     """
 
     kernel_size: int
@@ -31,33 +31,36 @@ class BaseJitter(DetectorLayer()):
         self.kernel_size = kernel_size
         super().__init__()
 
-    def apply(self: DetectorLayer, image: Image()) -> Image():
+    def apply(self: DetectorLayer, psf: PSF()) -> PSF():
         """
         Applies the layer to the Image.
 
         Parameters
         ----------
-        image : Image
-            The image to operate on.
+        psf : PSF
+            The PSF object to operate on.
 
         Returns
         -------
-        image : Image
-            The transformed image.
+        psf : PSF
+            The convolved PSF object.
         """
-        kernel = self.generate_kernel(dLux.utils.rad2arcsec(image.pixel_scale))
+        kernel = self.generate_kernel(dLux.utils.rad2arcsec(psf.pixel_scale))
 
-        return image.convolve(kernel)
+        return psf.convolve(kernel)
 
     @abstractmethod
     def generate_kernel(self, pixel_scale: float) -> Array:
+        """
+        Generates the convolution kernel to be applied.
+        """
         pass
 
 
 class GaussianJitter(BaseJitter):
     """
-    Convolves the image with a Gaussian kernel parameterised by the standard
-    deviation (sigma).
+    Convolves the image with a multivariate Gaussian kernel parameterised by the
+    magnitude, shear and angle.
 
     Attributes
     ----------
@@ -75,18 +78,18 @@ class GaussianJitter(BaseJitter):
         The oversampling factor for the kernel generation.
     """
 
-    r: float
-    shear: float = None
-    phi: float = None
+    r: float | Array
+    shear: float | Array = None
+    phi: float | Array = None
     kernel_oversample: int
 
     def __init__(
         self: BaseJitter,
-        r: float,
-        shear: float = 0,
-        phi: float = 0,
+        r: float | Array,
+        shear: float | Array = 0,
+        phi: float | Array = 0,
         kernel_size: int = 11,
-        kernel_oversample: int = 4,
+        kernel_oversample: int = 1,
     ):
         """
         Constructor for the ApplyJitter class.
@@ -120,9 +123,9 @@ class GaussianJitter(BaseJitter):
 
         super().__init__(kernel_size)
 
-        self.r = r
-        self.shear = shear
-        self.phi = phi
+        self.r = np.array(r)
+        self.shear = np.array(shear)
+        self.phi = np.array(phi)
         self.kernel_oversample = kernel_oversample
 
     @property
@@ -159,9 +162,7 @@ class GaussianJitter(BaseJitter):
         )
 
         # Compute the covariance matrix
-        covariance_matrix = np.dot(
-            np.dot(R, base_matrix), R.T
-        )  # TODO use dLux.utils.rotate
+        covariance_matrix = np.dot(np.dot(R, base_matrix), R.T)
 
         return covariance_matrix
 
@@ -232,7 +233,7 @@ class SHMJitter(BaseJitter):
         """
 
         # setting parameters
-        if A < 0.:
+        if A < 0.0:
             raise ValueError("A must be positive")
 
         self.A = A
