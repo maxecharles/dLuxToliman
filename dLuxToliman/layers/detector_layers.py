@@ -75,16 +75,16 @@ class GaussianJitter(BaseJitter):
         The oversampling factor for the kernel generation.
     """
 
-    r: float
-    shear: float = None
-    phi: float = None
+    r: float | Array
+    shear: float | Array = None
+    phi: float | Array = None
     kernel_oversample: int
 
     def __init__(
         self: BaseJitter,
-        r: float,
-        shear: float = 0,
-        phi: float = 0,
+        r: float | Array,
+        shear: float | Array = 0,
+        phi: float | Array = 0,
         kernel_size: int = 11,
         kernel_oversample: int = 1,
     ):
@@ -120,9 +120,9 @@ class GaussianJitter(BaseJitter):
 
         super().__init__(kernel_size)
 
-        self.r = r
-        self.shear = shear
-        self.phi = phi
+        self.r = np.array(r)
+        self.shear = np.array(shear)
+        self.phi = np.array(phi)
         self.kernel_oversample = kernel_oversample
 
     @property
