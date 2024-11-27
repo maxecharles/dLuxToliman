@@ -127,7 +127,7 @@ plt.show()
 
 
     
-![png](photon_count_files/photon_count_8_0.png)
+![png](assets/photon_count_files/photon_count_8_0.png)
     
 
 
@@ -155,7 +155,7 @@ plt.show()
 
 
     
-![png](photon_count_files/photon_count_10_0.png)
+![png](assets/photon_count_files/photon_count_10_0.png)
     
 
 
@@ -195,7 +195,7 @@ plt.show()
 
 
     
-![png](photon_count_files/photon_count_14_0.png)
+![png](assets/photon_count_files/photon_count_14_0.png)
     
 
 
