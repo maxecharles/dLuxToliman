@@ -29,9 +29,9 @@ class TolimanOpticalSystem(AngularOpticalSystem()):
         coefficients: Array = None,
         m1_diameter: float = 0.125,
         m2_diameter: float = 0.032,
-        n_struts: int = 3,
+        # n_struts: int = 3,
         strut_width: float = 0.002,
-        strut_rotation: float = -np.pi / 2,
+        # strut_rotation: float = -np.pi / 2,
     ):
         """
         A pre-built dLux optics layer of the Toliman optical system. Note TolimanOptics uses units of arcseconds.
@@ -149,19 +149,15 @@ class TolimanOpticalSystem(AngularOpticalSystem()):
 
         layers = [("aperture", aperture), ("pupil", mask)]
 
-        # Propagator Properties
-        psf_npixels = int(psf_npixels)
-        oversample = float(oversample)
-        psf_pixel_scale = float(psf_pixel_scale)
-
         super().__init__(
             wf_npixels=wf_npixels,
             diameter=diameter,
             layers=layers,
             # aperture=aperture,
             # mask=mask,
-            psf_npixels=psf_npixels,
+            psf_npixels=int(psf_npixels),
             oversample=int(oversample),
+            # psf_pixel_scale = float(psf_pixel_scale)
             psf_pixel_scale=psf_pixel_scale,
         )
 
