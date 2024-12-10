@@ -44,7 +44,7 @@ class AlphaCen(Source()):
 
     def __init__(
         self,
-        n_wavels=3,
+        n_wavels=5,
         separation=10.0,  # arcseconds
         position_angle=90,  # degrees
         x_position=0.0,  # arcseconds
