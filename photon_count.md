@@ -30,8 +30,8 @@ ALPHA_CEN_B_METALICITY = 0.23
 ALPHA_CEN_B_SURFACE_GRAV = 4.37  # log(g)
 ALPHA_CEN_B_MAGNITUDE = 1.33  # vega magnitude
 
-FILTER_MIN_WAVELENGTH = 5300.  # nm
-FILTER_MAX_WAVELENGTH = 6400.  # nm
+FILTER_MIN_WAVELENGTH = 5300.  # angstrom
+FILTER_MAX_WAVELENGTH = 6400.  # angstrom
 
 # os.chdir('..'); os.chdir('data')  # changing working directory so pysynphot can find the data
 os.chdir("/Users/mcha5804/data/pysynphot/")
@@ -76,7 +76,7 @@ print(f"TOLIMAN Primary Area: {primary:.2f} square cm.")
 
 
 ## Generating Spectra
-Now we can generate the spectra of the two stars using the [Phoenix](https://pysynphot.readthedocs.io/en/stable/appendixa.html#pysynphot-appendixa-phoenix) models. We feed the models the surface temperature, metallicity and surface gravity of the stars, and then renormalise the spectra to the known magnitudes of the stars in the V band. We then convert the flux to units of photons $s^{-1}cm^{-2}\AA^{-1}$ and the wavelengths to $nm$. Using the `fe_h` query in [SIMBAD](http://simbad.cds.unistra.fr/simbad/) can get you $\text{T}_\text{{eff}}$, $\log{g}$ and $\text{Fe}_\text{H}$ for different stars.
+Now we can generate the spectra of the two stars using the [Phoenix](https://pysynphot.readthedocs.io/en/stable/appendixa.html#pysynphot-appendixa-phoenix) models. We feed the models the surface temperature, metallicity and surface gravity of the stars, and then renormalise the spectra to the known magnitudes of the stars in the V band. We then convert the flux to units of photons $s^{-1}cm^{-2}\AA^{-1}$ and the wavelengths to $\AA$. Using the `fe_h` query in [SIMBAD](http://simbad.cds.unistra.fr/simbad/) can get you $\text{T}_\text{{eff}}$, $\log{g}$ and $\text{Fe}_\text{H}$ for different stars.
 
 
 ```python
@@ -100,9 +100,7 @@ A_sp = A_sp.renorm(RNval=ALPHA_CEN_A_MAGNITUDE, RNUnits="vegamag", band=VBand)
 B_sp = B_sp.renorm(RNval=ALPHA_CEN_B_MAGNITUDE, RNUnits="vegamag", band=VBand)
 
 # Converting units
-# A_sp.convert("nm")
 A_sp.convert("Photlam")
-# B_sp.convert("nm")
 B_sp.convert("Photlam")
 
 sum_sp = A_sp.flux + B_sp.flux
@@ -153,11 +151,9 @@ PySynPhot also has a range of other built-in bandpass filters, which can be foun
 
 
 ```python
-# this is in nanometers
 centre = (FILTER_MIN_WAVELENGTH + FILTER_MAX_WAVELENGTH) / 2
 bandwidth = FILTER_MAX_WAVELENGTH - FILTER_MIN_WAVELENGTH
 
-# must specify waveunits here because it will assume angstrom otherwise
 bandpass = S.Box(centre, bandwidth, waveunits="angstrom")  # add efficiency factor here
 
 plt.figure(figsize=(5, 3))
