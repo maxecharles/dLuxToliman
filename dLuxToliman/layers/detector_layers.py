@@ -149,15 +149,15 @@ class GaussianJitter(BaseJitter):
             ]
         )
 
-        # calculating the eigenvalues (lambda1 > lambda2)
-        lambda1 = (self.r / (1 - self.shear)) ** 0.25
-        lambda2 = lambda1 * (1 - self.shear)
+        # calculating the variances (var1 > var2)
+        var1 = np.sqrt(self.r) / (1 - self.shear)
+        var2 = var1 * (1 - self.shear) ** 2
 
         # Construct the skew matrix
         base_matrix = np.array(
             [
-                [lambda1**2, 0],
-                [0, lambda2**2],
+                [var1, 0],
+                [0, var2],
             ]
         )
 
