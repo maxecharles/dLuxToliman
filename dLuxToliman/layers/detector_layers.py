@@ -150,7 +150,7 @@ class GaussianJitter(BaseJitter):
         )
 
         # calculating the variances (var1 > var2)
-        var1 = np.sqrt(self.r) / (1 - self.shear)
+        var1 = 1e-3 * np.sqrt(self.r) / (1 - self.shear)
         var2 = var1 * (1 - self.shear) ** 2
 
         # Construct the skew matrix
