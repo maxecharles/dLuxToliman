@@ -32,16 +32,20 @@ A very basic example of how to use this package is as follows:
 # imports
 import dLuxToliman as dlT
 from matplotlib import pyplot as plt
+from matplotlib.colors import PowerNorm
 
-osys = dlT.TolimanOpticalSystem(psf_npixels=128)  # creating Toliman optical system
-source = dlT.AlphaCen(n_wavels=3, separation=8, position_angle=30)  # creating Alpha Centauri source
-tel = dlT.Toliman(source=source, osys=osys)  # creating Toliman telescope
+optics = dlT.TolimanOpticalSystem(psf_npixels=128)  # creating Toliman optical system
+source = dlT.AlphaCen(
+    n_wavels=3, separation=8, position_angle=30,
+)  # creating Alpha Centauri source
+model = dlT.Toliman(source=source, optics=optics)  # creating Toliman telescope
 
-psf = tel.model()  # running optical simulation
+psf = model.model()  # running optical simulation
 
 # plotting
-plt.imshow(psf ** .5, cmap='inferno')
-plt.title(r'Toliman $\sqrt{PSF}$')
+plt.imshow(psf, cmap="inferno", norm=PowerNorm(0.5), origin="lower")
+plt.title(r"Toliman PSF")
+plt.colorbar()
 plt.show()
 ```
 
