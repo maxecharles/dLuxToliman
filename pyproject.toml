@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dLuxToliman"
-version = "0.3.1"
+version = "0.4.0"
 description = "A repo to hold the canonical dLux Toliman models."
 readme = "README.md"
 dynamic = ["urls", "classifiers", "authors", "requires-python"]
