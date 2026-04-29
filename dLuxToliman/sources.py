@@ -1,7 +1,7 @@
 from __future__ import annotations
 from jax import Array, vmap
 import jax.numpy as np
-from zodiax import filter_vmap
+from equinox import filter_vmap
 import dLux.utils as dlu
 import dLux
 
