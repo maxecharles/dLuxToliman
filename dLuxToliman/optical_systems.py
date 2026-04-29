@@ -31,6 +31,7 @@ class TolimanOpticalSystem(AngularOpticalSystem()):
         m2_diameter: float = 0.032,
         # n_struts: int = 3,
         strut_width: float = 0.002,
+        z_oversize: float = 1.01,
         # strut_rotation: float = -np.pi / 2,
     ):
         """
@@ -71,6 +72,11 @@ class TolimanOpticalSystem(AngularOpticalSystem()):
             The width of the struts in metres.
         strut_rotation : float
             The angular rotation of the struts in radians.
+        z_oversize : float
+            The oversize factor of the zernike polynomials relative to the
+            primary mirror diameter. This is to ensure that the zernike
+            polynomials are not truncated at the edge of the aperture, which
+            can cause artefacts in the PSF. Default is 1.01.
         """
 
         # Diameter
@@ -103,7 +109,7 @@ class TolimanOpticalSystem(AngularOpticalSystem()):
             # Generate Basis
             coords = dlu.pixel_coords(wf_npixels, diameter)
             basis = np.array(
-                [dlu.zernike(i, coords, m1_diameter) for i in noll_indices]
+                [dlu.zernike(i, coords, z_oversize * m1_diameter) for i in noll_indices]
             )
 
             if coefficients is None:

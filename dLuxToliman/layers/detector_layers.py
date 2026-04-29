@@ -149,15 +149,25 @@ class GaussianJitter(BaseJitter):
             ]
         )
 
-        # calculating the eigenvalues (lambda1 > lambda2)
-        lambda1 = (self.r / (1 - self.shear)) ** 0.25
-        lambda2 = lambda1 * (1 - self.shear)
+        # calculating the variances (var1 > var2)
+        # NOTE Variances can cause determinant to be very small.
+        # For my jitter analysis, I had the following line:
+
+        # var1 = 1e-3 * np.sqrt(self.r) / (1 - self.shear)
+
+        # The 1e-3 factor increased the determinant by 6 orders of mag.
+        # And I just accounted for the units manually on the other side.
+        # This was a bit of a hacky way to to avoid numerical issues.
+        # TODO Adjust variance units so that determinant is a nice number.
+
+        var1 = np.sqrt(self.r) / (1 - self.shear)
+        var2 = var1 * (1 - self.shear) ** 2
 
         # Construct the skew matrix
         base_matrix = np.array(
             [
-                [lambda1**2, 0],
-                [0, lambda2**2],
+                [var1, 0],
+                [0, var2],
             ]
         )
 
