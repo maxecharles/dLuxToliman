@@ -1,42 +1,39 @@
 """
 Stochastic sampling of a detector frame from the expected (noiseless) image.
 
-Steps are applied in the order given in config["noise_sampling"]["sequence"].
+    "noise": {"poisson": true, "read_noise": true, "read_noise_electrons": 5.0}
+
+The expected image is in photoelectrons (QE is part of the throughput), so
+
+    frame = Poisson(expected) + Normal(0, read_noise_electrons**2)
+
+drawn with jax.random from the given key.
 """
 
 from __future__ import annotations
-import numpy as onp
-
-from .config import strip_comments
-
-
-def _shot_noise(image, spec, rng):
-    return rng.poisson(onp.clip(image, 0, None)).astype(float)
+from functools import partial
+import jax
+import jax.numpy as np
+import jax.random as jr
+from jax import Array
 
 
-def _read_noise(image, spec, rng):
-    return image + rng.normal(
-        spec.get("mean_electrons", 0.0), spec["sigma_electrons"], image.shape
-    )
+@partial(jax.jit, static_argnames=("poisson",))
+def _sample(expected, key, poisson, read_sigma):
+    poisson_key, read_key = jr.split(key)
+    mean = np.clip(expected, 0.0, None)
+    signal = jr.poisson(poisson_key, mean).astype(expected.dtype) if poisson else expected
+    return signal + read_sigma * jr.normal(read_key, expected.shape, expected.dtype)
 
 
-NOISE_STEPS = {
-    "shot_noise": _shot_noise,
-    "read_noise": _read_noise,
-}
+def sample_frame(expected, config: dict, key: Array) -> Array:
+    """Draws one noisy frame (photoelectrons) from the expected image (photoelectrons)."""
+    noise = config.get("noise", {})
+    expected = np.asarray(expected, dtype=float)
+    return _sample(expected, key, bool(noise.get("poisson", True)), read_noise_sigma(config))
 
 
-def sample_frame(expected, config: dict, rng: onp.random.Generator) -> onp.ndarray:
-    """Draws one noisy frame (electrons) from the expected image (electrons)."""
-    image = onp.asarray(expected, dtype=float)
-    for spec in config.get("noise_sampling", {}).get("sequence", []):
-        spec = strip_comments(spec)
-        if not spec.get("enabled", True):
-            continue
-        if spec["name"] not in NOISE_STEPS:
-            raise ValueError(
-                f"Unknown noise step '{spec['name']}'. "
-                f"Known steps: {list(NOISE_STEPS)}"
-            )
-        image = NOISE_STEPS[spec["name"]](image, spec, rng)
-    return image
+def read_noise_sigma(config: dict) -> float:
+    """Read noise [e-] if enabled, else 0."""
+    noise = config.get("noise", {})
+    return float(noise["read_noise_electrons"]) if noise.get("read_noise", False) else 0.0

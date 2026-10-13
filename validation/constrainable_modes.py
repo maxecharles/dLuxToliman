@@ -1,9 +1,9 @@
 """
 Number of constrainable spectral modes K for Alpha Cen A and B, to set n_coarse ~ 2K.
 
-    PYTHONPATH=/path/to/spectrum/src python scripts/constrainable_modes.py configs/example.json
+    python validation/constrainable_modes.py configs/example.json
 
-Needs the (private) `spectrum` package for its spectral Fisher tools. For each star the
+Uses the spectral Fisher tools of dluxtras. For each star the
 Fisher is taken over incident photons per wavelength bin, with the other star, dark
 current and read noise contributing variance, summed over n_frames identical frames
 (the Hermite model error is the same in every frame, so it adds coherently: K must be
@@ -18,8 +18,8 @@ import jax
 jax.config.update("jax_enable_x64", True)
 
 import numpy as onp
-from spectrum.spectra import recommend_wavelength_sampling
-from spectrum.spectral_eigenmodes import (
+from dluxtras.spectra import recommend_wavelength_sampling
+from dluxtras.spectral_eigenmodes import (
     constrainable_modes,
     mode_criterion,
     spectral_eigenmodes,
@@ -27,27 +27,24 @@ from spectrum.spectral_eigenmodes import (
 
 import dLux.utils as dlu
 from toliman_sim import build_telescope, load_config
+from toliman_sim.noise import read_noise_sigma
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("config")
     parser.add_argument("--n-wavels", type=int, default=100, help="Fisher bins (>= ~100)")
-    parser.add_argument("--n-frames", type=int, help="Frames fit together (default: output.n_frames)")
+    parser.add_argument("--n-frames", type=int, help="Frames fit together (default: observations.n_observations)")
     args = parser.parse_args()
 
     config = load_config(args.config)
     config["source"]["spectra"]["n_wavels"] = args.n_wavels
     config["source"]["spectra"]["n_coarse"] = None  # exact propagation for the reference
-    n_frames = args.n_frames or config.get("output", {}).get("n_frames", 1)
+    n_frames = args.n_frames or config.get("observations", {}).get("n_observations", 1)
 
-    telescope = build_telescope(config, onp.random.default_rng(config.get("seed")))
+    telescope = build_telescope(config, jax.random.PRNGKey(config.get("seed", 0)))
     source = telescope.source
-    read_sigma = sum(
-        step.get("sigma_electrons", 0.0)
-        for step in config.get("noise_sampling", {}).get("sequence", [])
-        if step["name"] == "read_noise" and step.get("enabled", True)
-    )
+    read_sigma = read_noise_sigma(config)
 
     stars = {"A": (source.spectrum_A, 0, 1), "B": (source.spectrum_B, 1, 0)}
     for name, (spectrum, this, other) in stars.items():

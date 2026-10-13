@@ -2,3 +2,4 @@ dLux==0.15.*
 zodiax==0.5.*
 jax
 equinox
+dluxtras @ git+https://github.com/milolangker/dluxtras.git
