@@ -3,8 +3,8 @@ Loading simulation configs and mapping them onto constructor arguments.
 
 Conventions (deliberately loose while the format is still in flux):
 - Keys starting with "_" are comments/annotations and are ignored.
-- Relative input paths (spectra, throughput, calibration maps) are relative to
-  the config file. Output paths are relative to the working directory.
+- Relative paths (spectra, throughput, calibration maps, output.directory) are
+  relative to the config file, so results do not depend on the working directory.
 - Config keys may carry a unit suffix (e.g. "separation_arcsec", "m1_diameter_m").
   The suffix is stripped to find the matching constructor argument, so the unit
   in the key must match the unit the dLuxToliman constructor expects.
@@ -29,7 +29,7 @@ def load_config(path: str | Path) -> dict:
 
 
 def config_dir(config: dict) -> Path | None:
-    """Folder of the config file; relative input paths (data tables) resolve against it."""
+    """Folder of the config file; relative paths in the config resolve against it."""
     path = config.get("_config_path")
     return Path(path).parent if path is not None else None
 

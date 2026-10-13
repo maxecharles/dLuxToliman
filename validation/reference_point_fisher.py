@@ -1,7 +1,7 @@
 """
 How the choice of reference point (centre_weight) affects inference of the separation.
 
-    python scripts/reference_point_fisher.py configs/example.json
+    python validation/reference_point_fisher.py configs/example.json
 
 Builds the expected Fisher matrix (Poisson + read noise) for
     (x, y, separation, position_angle, flux_A, flux_B)
@@ -21,6 +21,7 @@ import numpy as onp
 import dLuxToliman as dlT
 
 from toliman_sim import build_telescope, load_config
+from toliman_sim.noise import read_noise_sigma
 
 
 def fisher(telescope, centre_weight, read_sigma):
@@ -58,12 +59,8 @@ def main():
     args = parser.parse_args()
 
     config = load_config(args.config)
-    telescope = build_telescope(config, onp.random.default_rng(config.get("seed")))
-    read_sigma = sum(
-        s.get("sigma_electrons", 0.0)
-        for s in config.get("noise_sampling", {}).get("sequence", [])
-        if s["name"] == "read_noise" and s.get("enabled", True)
-    )
+    telescope = build_telescope(config, jax.random.PRNGKey(config.get("seed", 0)))
+    read_sigma = read_noise_sigma(config)
     f_A, f_B = onp.asarray(telescope.source.raw_fluxes)
     photocentre = f_B / (f_A + f_B)
     weights = args.weights or [0.0, photocentre, 0.5, 1.0]

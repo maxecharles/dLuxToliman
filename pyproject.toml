@@ -12,6 +12,7 @@ dependencies = [
     "zodiax==0.5.*",
     "jax",
     "equinox",
+    "dluxtras @ git+https://github.com/milolangker/dluxtras.git",  # spectra for toliman_sim
 ]
 
 [project.optional-dependencies]
@@ -19,7 +20,9 @@ tests = [
     "pytest",
     "pytest-cov",
 ]
-fits = ["astropy"]  # FITS output from toliman_sim
+fits = ["astropy"]                                  # FITS output from toliman_sim
+scripts = ["astropy", "openpyxl"]                   # scripts/ (spectra and throughput tables)
+notebooks = ["jupyterlab", "ipykernel", "matplotlib"]  # notebooks/
 
 dev = [
     "pytest",

@@ -1,78 +1,115 @@
 """
-Top-level simulation entry point: config in, simulated frames out.
+Top-level simulation entry point: config in, simulated observations out.
 
     python -m toliman_sim configs/example.json [--overwrite]
 
-Pipeline:
-    1. Build the Toliman telescope (optics + AlphaCen source + detector layers).
-    2. telescope.model() -> expected image in electrons (deterministic effects).
-    3. Draw n_frames noisy realisations (shot noise, read noise, ...).
-    4. Write frames + expected image + config to output.directory.
+Pipeline, for each of observations.n_observations:
+    1. Draw the parameters listed in observations.parameters (draws.py).
+    2. telescope.model() -> expected image in photoelectrons (deterministic effects).
+    3. Draw a noisy frame (Poisson and/or read noise, noise.py).
+Then write data (n_observations, ny, nx), expected images and the truth table.
 """
 
 from __future__ import annotations
 import argparse
+import secrets
+import warnings
 from pathlib import Path
+import equinox as eqx
+import jax.random as jr
 import numpy as onp
 
 from .config import load_config, strip_comments
 from .builders import build_telescope
+from .draws import apply, parse_draws, record, sample
 from .noise import sample_frame
 from .io import write_outputs
 
+KNOWN_SECTIONS = {
+    "run_id", "seed", "exposure_time_s", "output", "observations", "optics", "source",
+    "detector", "noise", "miscellaneous_effects", "temporal_planetary_signal",
+}
 
-def _check_unimplemented(config: dict):
-    """Fails loudly rather than silently simulating without a requested effect."""
-    if config.get("run_type", "non_temporal") != "non_temporal":
-        raise NotImplementedError(f"run_type '{config['run_type']}' not supported yet.")
+
+def _check_config(config: dict):
+    """Warns about unknown sections; fails loudly on requested but unimplemented effects."""
+    for key in strip_comments(config):
+        if key not in KNOWN_SECTIONS:
+            warnings.warn(f"Ignoring unknown config section '{key}'")
 
     effects = strip_comments(config.get("miscellaneous_effects", {}))
     for name, spec in effects.items():
         if spec.get("enabled", False):
             raise NotImplementedError(
                 f"miscellaneous_effects.{name} is not implemented yet (see the "
-                "README checklist). Set \"enabled\": false to skip it."
+                "DEVELOPMENT.md checklist). Set \"enabled\": false to skip it."
             )
 
     if config.get("temporal_planetary_signal", {}).get("enabled", False):
         raise NotImplementedError("temporal_planetary_signal is not implemented yet.")
 
 
+@eqx.filter_jit
+def _model(telescope):
+    return telescope.model()
+
+
 def simulate(config: dict) -> dict:
     """
     Runs a simulation described by `config` without writing anything to disk.
 
-    Returns a dict with the noisy `frames` (n_frames, ny, nx), the noiseless
-    `expected` image, and the `telescope` used to make them.
+    Returns a dict with the noisy `data` (n_observations, ny, nx), the noiseless
+    `expected` images, the `truth` table ({name: (n_observations, ...)}), the
+    nominal `telescope` the draws were made around, and the `seed` used (a random
+    one is chosen and returned if the config has none).
     """
-    _check_unimplemented(config)
-    rng = onp.random.default_rng(config.get("seed"))
+    _check_config(config)
 
-    telescope = build_telescope(config, rng)
-    expected = onp.asarray(telescope.model())
+    # One root key: half for building (e.g. a random flat field), and one key per
+    # observation (fold_in), split between the parameter draws and the noise.
+    seed = config.get("seed")
+    if seed is None:
+        seed = secrets.randbelow(2**31)
+    build_key, observation_key = jr.split(jr.PRNGKey(seed))
 
-    # Non-temporal: every frame is a new noise draw from the same expected image
-    n_frames = config.get("output", {}).get("n_frames", 1)
-    frames = onp.stack([sample_frame(expected, config, rng) for _ in range(n_frames)])
+    telescope = build_telescope(config, build_key)
+    draws = parse_draws(config, telescope)
+    n = config.get("observations", {}).get("n_observations", 1)
 
-    return {"frames": frames, "expected": expected, "telescope": telescope}
+    data, expected, truth = [], [], []
+    for i in range(n):
+        draw_key, noise_key = jr.split(jr.fold_in(observation_key, i))
+        observed = apply(telescope, draws, sample(draws, draw_key))
+        image = _model(observed)
+        expected.append(onp.asarray(image))
+        data.append(onp.asarray(sample_frame(image, config, noise_key)))
+        truth.append(record(observed) | {name: observed.get(draws[name][0]) for name in draws})
+
+    truth = {name: onp.stack([onp.asarray(t[name]) for t in truth]) for name in truth[0]}
+    return {
+        "data": onp.stack(data),
+        "expected": onp.stack(expected),
+        "truth": truth,
+        "telescope": telescope,
+        "seed": seed,
+    }
+
+
+def save(result: dict, config: dict, overwrite: bool = False) -> Path:
+    """Writes a simulate() result to config["output"]; returns the data file's path."""
+    if overwrite:
+        config = config | {"output": config.get("output", {}) | {"overwrite": True}}
+    meta = {
+        "pixel_scale_arcsec": float(result["telescope"].optics.psf_pixel_scale),
+        "seed": result["seed"],
+    }
+    return write_outputs(result, config | {"seed": result["seed"]}, meta)
 
 
 def run(config_path: str | Path, overwrite: bool = False) -> Path:
     """Loads a config file, simulates it, and writes the outputs to disk."""
     config = load_config(config_path)
-    if overwrite:
-        config.setdefault("output", {})["overwrite"] = True
-
-    result = simulate(config)
-    telescope = result["telescope"]
-    header = {
-        "RUN_ID": (config["run_id"], "Simulation run identifier"),
-        "SEED": (config.get("seed", -1), "RNG seed (-1 = unseeded)"),
-        "NFRAMES": (result["frames"].shape[0], "Number of frames"),
-        "PIXSCALE": (float(telescope.optics.psf_pixel_scale), "arcsec / pixel"),
-    }
-    return write_outputs(result["frames"], result["expected"], config, header)
+    return save(simulate(config), config, overwrite)
 
 
 def main(argv=None):
@@ -82,7 +119,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     path = run(args.config, overwrite=args.overwrite)
-    print(f"Wrote {path}")
+    print(f"Wrote {path.resolve()}")
 
 
 if __name__ == "__main__":

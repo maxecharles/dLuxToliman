@@ -14,6 +14,8 @@ from __future__ import annotations
 import math
 import numpy as onp
 import jax.numpy as np
+import jax.random as jr
+from jax import Array
 import dLux
 import dLux.layers as dll
 import dLuxToliman as dlT
@@ -64,15 +66,14 @@ def _odd(n: float) -> int:
     return n + 1 - n % 2
 
 
-def _jitter(spec, optics, config, rng):
+def _jitter(spec, optics, config, key):
     # Kernels are built on the oversampled grid
     pixel_scale = optics.psf_pixel_scale / optics.oversample  # arcsec
 
     if spec.get("kernel", "gaussian") == "gaussian":
-        sigma = spec["sigma_mas"] / 1e3  # arcsec
-        # GaussianJitter's covariance is diag(sqrt(r)), so sigma = r ** (1/4)
-        return dlT.GaussianJitter(
-            r=sigma**4,
+        sigma = spec["sigma_mas"] / 1e3  # arcsec, major axis
+        return dlT.GaussianJitter.from_sigma(
+            sigma,
             shear=spec.get("shear", 0.0),
             phi=spec.get("phi_deg", 0.0),
             kernel_size=max(11, _odd(8 * sigma / pixel_scale)),
@@ -89,14 +90,14 @@ def _jitter(spec, optics, config, rng):
     raise ValueError(f"Unknown jitter kernel '{spec['kernel']}'")
 
 
-def _pixel_response(spec, optics, config, rng):
+def _pixel_response(spec, optics, config, key):
     shape = (optics.psf_npixels, optics.psf_npixels)
     path = spec.get("pixel_response_map_path")
     if path is not None:
         response = onp.load(resolve(path, config_dir(config)))
     else:
         # No calibration map given: draw a random Gaussian flat field
-        response = 1 + spec.get("flat_sigma", 0.0) * rng.standard_normal(shape)
+        response = 1 + spec.get("flat_sigma", 0.0) * jr.normal(key, shape)
     if response.shape != shape:
         raise ValueError(
             f"[pixel_response] map has shape {response.shape}, expected {shape}"
@@ -104,36 +105,33 @@ def _pixel_response(spec, optics, config, rng):
     return dll.ApplyPixelResponse(np.asarray(response))
 
 
-def _dark_current_mean(spec, optics, config, rng):
-    mean = spec.get("mean_e_per_pixel")
-    if mean is None:
-        mean = spec["rate_e_per_s_per_pixel"] * config["exposure_time_s"]
-    return dll.AddConstant(mean)
+def _dark_current(spec, optics, config, key):
+    return dll.AddConstant(spec["rate_e_per_s_per_pixel"] * config["exposure_time_s"])
 
 
-def _not_implemented(spec, optics, config, rng):
+def _not_implemented(spec, optics, config, key):
     raise NotImplementedError(
-        f"Detector layer '{spec['name']}' is not implemented yet (see the README "
+        f"Detector layer '{spec['name']}' is not implemented yet (see the DEVELOPMENT.md "
         "checklist). Set \"enabled\": false to skip it."
     )
 
 
-# name -> (grid, builder(spec, optics, config, rng))
+# name -> (grid, builder(spec, optics, config, key))
 DETECTOR_LAYERS = {
     "high_frequency_jitter": ("oversampled", _jitter),
     "pixel_dislocations": ("oversampled", _not_implemented),
     "local_pixel_scale_variation": ("oversampled", _not_implemented),
     "pixel_response": ("detector", _pixel_response),
     "brighter_fatter_effect": ("detector", _not_implemented),
-    "dark_current_mean": ("detector", _dark_current_mean),
+    "dark_current": ("detector", _dark_current),
 }
 
 
 def build_detector(
-    config: dict, optics: dlT.TolimanOpticalSystem, rng: onp.random.Generator
+    config: dict, optics: dlT.TolimanOpticalSystem, key: Array
 ) -> dLux.LayeredDetector:
     oversampled, detector = [], []
-    for spec in config.get("detector", {}).get("layers", []):
+    for i, spec in enumerate(config.get("detector", {}).get("layers", [])):
         spec = strip_comments(spec)
         if not spec.get("enabled", True):
             continue
@@ -144,15 +142,16 @@ def build_detector(
                 f"Known layers: {list(DETECTOR_LAYERS)}"
             )
         grid, builder = DETECTOR_LAYERS[name]
-        layer = (name, builder(spec, optics, config, rng))
+        layer = (name, builder(spec, optics, config, jr.fold_in(key, i)))
         (oversampled if grid == "oversampled" else detector).append(layer)
 
     downsample = ("downsample", dll.Downsample(optics.oversample))
     return dLux.LayeredDetector(oversampled + [downsample] + detector)
 
 
-def build_telescope(config: dict, rng: onp.random.Generator) -> dlT.Toliman:
+def build_telescope(config: dict, key: Array) -> dlT.Toliman:
+    """`key` is a jax.random key, used by random calibration maps (e.g. the flat field)."""
     optics = build_optics(config)
     source = build_source(config, optics)
-    detector = build_detector(config, optics, rng)
+    detector = build_detector(config, optics, key)
     return dlT.Toliman(optics, source, detector)
