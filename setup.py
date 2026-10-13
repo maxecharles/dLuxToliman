@@ -36,5 +36,6 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
-    packages=["dLuxToliman"],
+    packages=setuptools.find_packages(include=["dLuxToliman*", "toliman_sim*"]),
+    package_data={"dLuxToliman": ["*.npy"]},
 )

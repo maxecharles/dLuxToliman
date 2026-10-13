@@ -1,0 +1,238 @@
+{
+  "run_id": "sim_run_0001",
+  "seed": 42,
+  "run_type": "non_temporal",
+  "exposure_time_s": 0.1,
+  "_exposure_notes": "Exposure time per frame. Multiplies the photon-rate spectra of A and B and the dark-current rate.",
+  "output": {
+    "format": "fits",
+    "directory": "./simulated_data/sim_run_0001",
+    "n_frames": 10,
+    "overwrite": false
+  },
+  "optics": {
+    "_dlux_object": "dLuxToliman.TolimanOpticalSystem",
+    "wf_npixels": 256,
+    "psf_npixels": 128,
+    "oversample": 4,
+    "psf_pixel_scale_arcsec": 0.4219,
+    "mask": null,
+    "radial_orders": [
+      2,
+      3
+    ],
+    "noll_indices": null,
+    "coefficients_m": [
+      2e-08,
+      5e-09,
+      5e-09,
+      3e-09,
+      3e-09,
+      2e-09,
+      2e-09
+    ],
+    "m1_diameter_m": 0.125,
+    "m2_diameter_m": 0.032,
+    "strut_width_m": 0.002,
+    "_notes": "radial_orders [2, 3] gives 3 + 4 = 7 Zernikes, so coefficients_m needs 7 entries."
+  },
+  "source": {
+    "_dlux_object": "dLuxToliman.SpectralAlphaCen",
+    "_notes": "Positions and separation in arcsec. position_angle_deg is the direction of B relative to A. (x, y) is a reference point a fraction centre_weight of the way from A to B: 0 = A, 0.5 = midpoint, F_B/(F_A+F_B) ~ 0.24 = photocentre, which nearly decorrelates the position from the separation (scripts/reference_point_fisher.py).",
+    "separation_arcsec": 10.0,
+    "position_angle_deg": 90,
+    "x_position_arcsec": 0.0,
+    "y_position_arcsec": 0.0,
+    "centre_weight": 0.24,
+    "spectra": {
+      "_notes": "Photon-rate spectra: SED [photons/s/m^2/nm] x collecting area -> incident photons/s per bin; throughput is kept separate as filt_weights. n_coarse ~ 2K (K = constrainable spectral modes) propagates only n_coarse wavelengths and Hermite-interpolates the rest; null propagates all n_wavels. Here n_coarse = 2K per star with K = 16 (A), 12 (B) from scripts/constrainable_modes.py for 10 co-fit frames; recompute if the spectra, throughput or frame count change.",
+      "n_wavels": 300,
+      "throughput": {
+        "_notes": "System throughput = product of components. The simulated band is where it exceeds threshold x peak (or band_nm if given); ~2.5% of detected photons fall outside 512-647 nm and are not simulated yet.",
+        "components": [
+          {
+            "path": "../data/throughput/bandpass.csv",
+            "_notes": "Filter, from Bandpass-Sydney.xlsx"
+          },
+          {
+            "path": "../data/throughput/qe_mono.csv",
+            "_notes": "Camera mono QE, from ApproximateQE-BFS-U3-200S6.xlsx"
+          },
+          {
+            "constant": 0.8281,
+            "_notes": "Two sheets of glass at 0.91 each (visual estimate, as in photon_count.md)"
+          }
+        ],
+        "threshold": 0.03
+      },
+      "A": {
+        "sed": "table",
+        "path": "../data/spectra/alpha_cen_A.csv",
+        "n_coarse": 32,
+        "_notes": "PHOENIX Teff 5790 K, [M/H] 0.2, logg 4.0, V = 0.01 (scripts/make_stellar_spectra.py)"
+      },
+      "B": {
+        "sed": "table",
+        "path": "../data/spectra/alpha_cen_B.csv",
+        "n_coarse": 24,
+        "_notes": "PHOENIX Teff 5260 K, [M/H] 0.23, logg 4.37, V = 1.33"
+      }
+    }
+  },
+  "instrument": {
+    "_dlux_object": "dLuxToliman.Toliman",
+    "optics": "$ref:optics",
+    "source": "$ref:source",
+    "detector": "$ref:detector",
+    "_notes": "The detector is part of the dLux instrument object graph, so instrument.model() returns the expected detector image, including deterministic detector effects and the mean dark-current contribution."
+  },
+  "detector": {
+    "_dlux_object": "dLux.LayeredDetector",
+    "_notes": "Deterministic transformations of the expected image. Custom layers may be implemented as dLux DetectorLayer subclasses and included directly in instrument.model(). Layers are evaluated in the order listed.",
+    "layers": [
+      {
+        "name": "high_frequency_jitter",
+        "_dlux_object": "custom.GaussianJitterConvolution",
+        "enabled": true,
+        "kernel": "gaussian",
+        "sigma_mas": 2.0,
+        "_notes": "High-frequency pointing jitter is represented by convolution of the expected image with a Gaussian kernel."
+      },
+      {
+        "name": "pixel_dislocations",
+        "_dlux_object": "custom.PixelDislocationLayer",
+        "enabled": false,
+        "displacement_map_path": "./calibration/pixel_dislocations.npy",
+        "displacement_units": "pixel"
+      },
+      {
+        "name": "local_pixel_scale_variation",
+        "_dlux_object": "custom.PolynomialPixelGeometryLayer",
+        "enabled": false,
+        "model": "global_2d_polynomial_coordinate_map",
+        "polynomial_order": 2,
+        "x_coefficients_pixel": [
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "y_coefficients_pixel": [
+          0.0,
+          0.0,
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "coefficient_order": [
+          "1",
+          "x",
+          "y",
+          "x^2",
+          "xy",
+          "y^2"
+        ],
+        "_notes": "The polynomial maps nominal detector coordinates to physical coordinates; its spatially varying Jacobian produces local pixel-scale variation."
+      },
+      {
+        "name": "pixel_response",
+        "_dlux_object": "dLux.layers.detector_layers.ApplyPixelResponse",
+        "enabled": true,
+        "pixel_response_map_path": null,
+        "flat_sigma": 0.01,
+        "_notes": "If pixel_response_map_path is null, a random Gaussian flat (1 + flat_sigma * N(0, 1)) is drawn from the run seed."
+      },
+      {
+        "name": "brighter_fatter_effect",
+        "_dlux_object": "custom.BrighterFatterLayer",
+        "enabled": false,
+        "model": "signal_dependent_charge_redistribution",
+        "coupling_coefficient": 0.001
+      },
+      {
+        "name": "dark_current_mean",
+        "_dlux_object": "custom.AddConstantPerPixel",
+        "enabled": true,
+        "rate_e_per_s_per_pixel": 0.01,
+        "spatial_model": "constant",
+        "temperature_k": 170,
+        "_notes": "Adds rate_e_per_s_per_pixel * exposure_time_s to every pixel before stochastic sampling (mean_e_per_pixel, if given, overrides this)."
+      }
+    ]
+  },
+  "noise_sampling": {
+    "_notes": "Stochastic realization applied after instrument.model() returns the expected electrons. The ordering is physically important.",
+    "sequence": [
+      {
+        "name": "shot_noise",
+        "distribution": "poisson",
+        "enabled": true,
+        "mean": "instrument.model()"
+      },
+      {
+        "name": "read_noise",
+        "distribution": "gaussian",
+        "enabled": true,
+        "mean_electrons": 0.0,
+        "sigma_electrons": 5.0,
+        "temperature_k": 170,
+        "applied_after": "shot_noise"
+      }
+    ]
+  },
+  "miscellaneous_effects": {
+    "_notes": "Additional scene- or optics-level effects. These are distinct from detector response and stochastic detector noise.",
+    "ghosts": {
+      "enabled": false,
+      "model": "shifted_attenuated_copies",
+      "intensity_fraction": 0.001,
+      "positions_pixel": []
+    },
+    "stray_light": {
+      "enabled": false,
+      "model": "additive_spatial_background",
+      "surface_brightness_e_per_s_per_pixel": 50.0,
+      "spatial_template_path": null
+    },
+    "background_stars": {
+      "enabled": false,
+      "n_stars": 5,
+      "flux_range_photons_per_sec": [
+        10.0,
+        1000.0
+      ],
+      "position_range_arcsec": [
+        -2.0,
+        2.0
+      ]
+    },
+    "off_axis_field_aberrations": {
+      "enabled": false,
+      "method": "lookup_table",
+      "lookup_table_path": "./calibration/off_axis_aberrations_lut.npz",
+      "raytrace_source": null
+    },
+    "leakage": {
+      "enabled": false,
+      "source": "sawtooth_grating",
+      "model_type": "full_pupil_render",
+      "angle_dependent": {
+        "enabled": false,
+        "requires_raytracer": true
+      }
+    }
+  },
+  "temporal_planetary_signal": {
+    "_notes": "Optional time-dependent companion signal evaluated separately for each output frame.",
+    "enabled": false,
+    "model": "orbit",
+    "reference_separation_arcsec": 0.5,
+    "reference_position_angle_deg": 0.0,
+    "orbital_motion_enabled": false,
+    "orbital_parameters": {},
+    "frame_times_s": null
+  }
+}

@@ -1,14 +1,17 @@
 from __future__ import annotations
 from jax import Array, vmap
 import jax.numpy as np
+import equinox as eqx
 from equinox import filter_vmap
 import dLux.utils as dlu
 import dLux
 
+from .spectra import CombinedSpectrum, propagate_spectrum
+
 Source = lambda: dLux.BaseSource
 Optics = lambda: dLux.BaseOpticalSystem
 
-__all__ = ["AlphaCen"]  # , "MixedAlphaCen"]
+__all__ = ["AlphaCen", "SpectralAlphaCen"]  # , "MixedAlphaCen"]
 
 
 class AlphaCen(Source()):
@@ -183,6 +186,126 @@ class AlphaCen(Source()):
 
         # Return array is simple
         return output.sum(0)
+
+
+class SpectralAlphaCen(Source()):
+    """
+    Alpha Centauri A and B, each with its own spectrum, parameterised by their
+    separation.
+
+    Each spectrum is a CombinedSpectrum whose spec_weights are INCIDENT photon
+    RATES per wavelength bin (photons / s, collecting area included) and whose
+    filt_weights are the system throughput. The detected photons of each star are
+    exposure_time * spectrum.proper_flux(), so exposure_time is a pure multiplier.
+    Hermite wavelength sparsity is set per star through spectrum.n_coarse.
+
+    Geometry: (x_position, y_position) is a reference point on the line from A to
+    B, a fraction `centre_weight` of the way from A to B:
+        A = ref - centre_weight * d,   B = ref + (1 - centre_weight) * d,
+        d = separation * (sin PA, cos PA)
+    so position_angle is the direction of B relative to A (the usual convention),
+    and centre_weight = 0 puts the reference on A, 0.5 on the midpoint and
+    F_B / (F_A + F_B) on the photocentre. The choice does not change the model,
+    only how strongly the reference position and the separation are correlated.
+
+    Attributes
+    ----------
+    x_position, y_position : float, arcseconds
+        Position of the reference point.
+    separation : float, arcseconds
+        Separation of A and B.
+    position_angle : float, degrees
+        Position angle of B relative to A.
+    exposure_time : float, seconds
+        Exposure time of one frame.
+    spectrum_A, spectrum_B : CombinedSpectrum
+        Photon-rate spectra of A and B.
+    centre_weight : float (static)
+        Where the reference point sits between A (0) and B (1).
+    """
+
+    x_position: float
+    y_position: float
+    separation: float
+    position_angle: float
+    exposure_time: float
+    spectrum_A: CombinedSpectrum
+    spectrum_B: CombinedSpectrum
+    centre_weight: float = eqx.field(static=True)
+
+    def __init__(
+        self,
+        spectrum_A: CombinedSpectrum,
+        spectrum_B: CombinedSpectrum,
+        exposure_time: float = 1.0,  # seconds
+        separation: float = 10.0,  # arcseconds
+        position_angle: float = 90.0,  # degrees
+        x_position: float = 0.0,  # arcseconds
+        y_position: float = 0.0,  # arcseconds
+        centre_weight: float = 0.5,
+    ):
+        self.spectrum_A = spectrum_A
+        self.spectrum_B = spectrum_B
+        self.exposure_time = np.asarray(exposure_time, float)
+        self.separation = np.asarray(separation, float)
+        self.position_angle = np.asarray(position_angle, float)
+        self.x_position = np.asarray(x_position, float)
+        self.y_position = np.asarray(y_position, float)
+        self.centre_weight = float(centre_weight)
+
+    def normalise(self):
+        return self
+
+    @property
+    def xy_positions(self):
+        """The x and y positions of A and B respectively, in radians."""
+        phi = dlu.deg2rad(self.position_angle)
+        d = self.separation * np.array([np.sin(phi), np.cos(phi)])
+        ref = np.array([self.x_position, self.y_position])
+        A = ref - self.centre_weight * d
+        B = ref + (1 - self.centre_weight) * d
+        return dlu.arcsec2rad(np.array([A, B]))
+
+    @property
+    def raw_fluxes(self):
+        """Detected photons from A and B respectively in one exposure."""
+        rates = np.array([self.spectrum_A.proper_flux(), self.spectrum_B.proper_flux()])
+        return self.exposure_time * rates
+
+    @property
+    def contrast(self):
+        """Detected (in-band) flux ratio A / B, as in AlphaCen.contrast."""
+        return self.spectrum_A.proper_flux() / self.spectrum_B.proper_flux()
+
+    @property
+    def log_flux(self):
+        """log10 of the total detected photons in one exposure, as in AlphaCen.log_flux."""
+        return np.log10(self.raw_fluxes.sum())
+
+    def model(
+        self: Source(),
+        optics: Optics(),
+        return_wf: bool = False,
+        return_psf: bool = False,
+    ) -> Array:
+        """
+        Models A + B through the optics. Each star is propagated separately since
+        their spectra (and n_coarse) may differ.
+        """
+        if return_wf:
+            raise ValueError("SpectralAlphaCen returns PSFs, not wavefronts")
+
+        spectra = (self.spectrum_A, self.spectrum_B)
+        psfs = [
+            propagate_spectrum(optics, spectrum, position, flux, return_psf=True)
+            for spectrum, position, flux in zip(
+                spectra, self.xy_positions, self.raw_fluxes
+            )
+        ]
+        data = psfs[0].data + psfs[1].data
+        if return_psf:
+            return dLux.PSF(data, psfs[0].pixel_scale)
+        return data
 
 
 def get_mixed_alpha_cen_spectra(nwavels: int, bandpass: tuple = (530, 640)):

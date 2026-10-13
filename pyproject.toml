@@ -19,6 +19,7 @@ tests = [
     "pytest",
     "pytest-cov",
 ]
+fits = ["astropy"]  # FITS output from toliman_sim
 
 # The version is defined once, as __version__ in dLuxToliman/__init__.py
 [tool.setuptools.dynamic]
