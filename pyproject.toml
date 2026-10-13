@@ -19,6 +19,7 @@ tests = [
     "pytest",
     "pytest-cov",
 ]
+fits = ["astropy"]  # FITS output from toliman_sim
 
 dev = [
     "pytest",

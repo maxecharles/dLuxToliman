@@ -32,7 +32,7 @@ class Toliman(dLux.Telescope):
     optics: BaseOpticalSystem
     source: BaseSource
 
-    def __init__(self, optics, source):
+    def __init__(self, optics, source, detector=None):
         """
         Parameters
         ----------
@@ -40,10 +40,12 @@ class Toliman(dLux.Telescope):
             The optical system to be used in the telescope.
         source : dLux.sources.BaseSource
             The source object to be used in the telescope.
+        detector : dLux.LayeredDetector = None
+            The detector object to be used in the telescope.
         """
         self.optics = optics
         self.source = source
-        super().__init__(optics, source)
+        super().__init__(optics, source, detector)
 
     def __getattr__(self, key):
         """
