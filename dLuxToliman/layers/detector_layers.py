@@ -162,17 +162,8 @@ class GaussianJitter(BaseJitter):
             ]
         )
 
-        # calculating the variances (var1 > var2)
-        # NOTE Variances can cause determinant to be very small.
-        # For my jitter analysis, I had the following line:
-
-        # var1 = 1e-3 * np.sqrt(self.r) / (1 - self.shear)
-
-        # The 1e-3 factor increased the determinant by 6 orders of mag.
-        # And I just accounted for the units manually on the other side.
-        # This was a bit of a hacky way to to avoid numerical issues.
-        # TODO Adjust variance units so that determinant is a nice number.
-
+        # calculating the variances (var1 > var2) in arcsec^2, so that
+        # r = var1 * var2 is the determinant of the covariance in arcsec^4
         var1 = np.sqrt(self.r) / (1 - self.shear)
         var2 = var1 * (1 - self.shear) ** 2
 

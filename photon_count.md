@@ -59,7 +59,7 @@ We also have to set the area of the telescope -- I have used the TOLIMAN primary
 
 
 ```python
-primary = np.pi * (12.5**2 - 3.2**2)
+primary = np.pi / 4 * (12.5**2 - 3.2**2)  # primary subtract secondary in cm^2; 12.5 and 3.2 are diameters
 
 S.setref(
     graphtable="mtab/83816517m_tmg.fits",
@@ -71,7 +71,7 @@ S.setref(
 print(f"TOLIMAN Primary Area: {primary:.2f} square cm.")
 ```
 
-    TOLIMAN Primary Area: 458.70 square cm.
+    TOLIMAN Primary Area: 114.68 square cm.
 
 
 ## Generating Spectra
@@ -241,9 +241,9 @@ print(
 )
 ```
 
-    Alpha Cen A: 6.342e+05 photons/s/cm/cm; 2.909e+08 photons/s
-    Alpha Cen B: 1.967e+05 photons/s/cm/cm; 9.023e+07 photons/s
-    Total count rate: 8.309e+05 photons/s/cm/cm; 3.811e+08 photons/s
+    Alpha Cen A: 6.342e+05 photons/s/cm/cm; 7.272e+07 photons/s
+    Alpha Cen B: 1.967e+05 photons/s/cm/cm; 2.256e+07 photons/s
+    Total count rate: 8.309e+05 photons/s/cm/cm; 9.528e+07 photons/s
 
 
 Great. If we know the TOLIMAN exposure time is 0.1 seconds, then we can calculate the number of photons present in a single frame.
@@ -257,6 +257,6 @@ print(f"Total photons in {exp_time} seconds: {tot_phot:.3e} photons")
 print(f"Log10 of total photons: {np.log10(tot_phot):.3f}")
 ```
 
-    Total photons in 0.1 seconds: 3.811e+07 photons
-    Log10 of total photons: 7.581
+    Total photons in 0.1 seconds: 9.528e+06 photons
+    Log10 of total photons: 6.979
 
