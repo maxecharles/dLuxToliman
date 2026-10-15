@@ -1,9 +1,10 @@
 # dLuxToliman
 
 [![PyPI version](https://badge.fury.io/py/dLuxToliman.svg)](https://badge.fury.io/py/dLuxToliman)
-[![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-BSD%203--Clause-blue.svg)](https://github.com/maxecharles/dLuxToliman/blob/main/LICENSE)
+[![Documentation](https://github.com/maxecharles/dLuxToliman/actions/workflows/documentation.yml/badge.svg)](https://maxecharles.github.io/dLuxToliman/)
 
-![Banner Image](./assets/dLuxToliman_banner.jpg)
+![Banner Image](https://raw.githubusercontent.com/maxecharles/dLuxToliman/main/assets/dLuxToliman_banner.jpg)
 
 ## Description
 This repository/package contains pre-built ∂Lux models of the Toliman optical system, and pre-built parametrised ∂Lux source objects for Alpha Centauri.
@@ -49,14 +50,14 @@ plt.colorbar()
 plt.show()
 ```
 
-![Example Image](./assets/basic_toliman_psf.jpg)
+![Example Image](https://raw.githubusercontent.com/maxecharles/dLuxToliman/main/assets/basic_toliman_psf.jpg)
 
 ## Contributors
 [Max Charles](https://github.com/maxecharles), [Louis Desdoigts](https://github.com/LouisDesdoigts), [Benjamin Pope](https://github.com/benjaminpope), [Connor Langford](https://github.com/CLangford2098), [Milo Langker](https://github.com/milolangker), and [Peter Tuthill](https://github.com/ptuthill).
 
 ## License
 
-This package is released under the BSD 3-Clause License. See the [LICENSE](LICENSE) file for more information.
+This package is released under the BSD 3-Clause License. See the [LICENSE](https://github.com/maxecharles/dLuxToliman/blob/main/LICENSE) file for more information.
 
 ## Support
 
