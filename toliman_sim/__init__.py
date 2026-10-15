@@ -2,13 +2,13 @@
 toliman_sim: config-driven simulation of TOLIMAN data on top of dLuxToliman.
 
     python -m toliman_sim configs/example.json
+
+Simulations need JAX double precision. Importing this package does not change any
+global settings; enable it before building models with
+    jax.config.update("jax_enable_x64", True)
+(simulate() enables it, with a warning, if you have not; the command line does it
+for you).
 """
-
-import jax
-
-# Astrometry at the micro-arcsecond level needs double precision. This must
-# happen before any dLux/JAX arrays are created.
-jax.config.update("jax_enable_x64", True)
 
 from .config import load_config
 from .builders import build_optics, build_source, build_detector, build_telescope

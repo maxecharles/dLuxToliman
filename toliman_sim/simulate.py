@@ -16,6 +16,7 @@ import secrets
 import warnings
 from pathlib import Path
 import equinox as eqx
+import jax
 import jax.random as jr
 import numpy as onp
 
@@ -49,6 +50,16 @@ def _check_config(config: dict):
         raise NotImplementedError("temporal_planetary_signal is not implemented yet.")
 
 
+def _require_x64():
+    """Astrometry at the micro-arcsecond level needs double precision."""
+    if not jax.config.jax_enable_x64:
+        warnings.warn(
+            "Enabling JAX double precision (jax_enable_x64) for the simulation. Enable "
+            "it yourself at the start of your script to avoid mixing precisions."
+        )
+        jax.config.update("jax_enable_x64", True)
+
+
 @eqx.filter_jit
 def _model(telescope):
     return telescope.model()
@@ -64,6 +75,7 @@ def simulate(config: dict) -> dict:
     one is chosen and returned if the config has none).
     """
     _check_config(config)
+    _require_x64()
 
     # One root key: half for building (e.g. a random flat field), and one key per
     # observation (fold_in), split between the parameter draws and the noise.
@@ -118,6 +130,7 @@ def main(argv=None):
     parser.add_argument("--overwrite", action="store_true", help="Replace existing outputs")
     args = parser.parse_args(argv)
 
+    jax.config.update("jax_enable_x64", True)
     path = run(args.config, overwrite=args.overwrite)
     print(f"Wrote {path.resolve()}")
 

@@ -17,8 +17,11 @@ import argparse
 import copy
 import time
 
-import equinox as eqx
 import jax
+
+jax.config.update("jax_enable_x64", True)
+
+import equinox as eqx
 import numpy as onp
 
 from toliman_sim import build_telescope, load_config

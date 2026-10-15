@@ -10,7 +10,7 @@ import pytest
 from toliman_sim import build_optics
 from toliman_sim.builders import _jitter
 
-from test_simulate import SMALL_CONFIG
+from .small_config import SMALL_CONFIG
 
 
 def _blur_moments(layer, pixel_scale_arcsec=0.01, npix=129):

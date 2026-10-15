@@ -12,8 +12,7 @@ Implementation details, the config options, validation results, the feature chec
 
 ```bash
 conda activate toliman_data
-pip install "dluxtras @ git+https://github.com/milolangker/dluxtras.git"   # spectra / Hermite sparsity
-pip install -e ".[fits,scripts,notebooks,test]"   # dLux 0.15.x, JAX, astropy, openpyxl, Jupyter, pytest
+pip install -e ".[tests,fits,scripts,notebooks]"   # dLux 0.15.x, JAX, dluxtras, astropy, openpyxl, Jupyter, pytest
 ```
 
 **1. Write or copy a config.** Start from `configs/example.json`, e.g. `cp configs/example.json configs/my_run.json`, then edit it:
@@ -40,6 +39,9 @@ pip install -e ".[fits,scripts,notebooks,test]"   # dLux 0.15.x, JAX, astropy, o
 - **Python:**
 
   ```python
+  import jax
+  jax.config.update("jax_enable_x64", True)   # simulations need double precision
+
   from toliman_sim import load_config, simulate, save
 
   config = load_config("configs/my_run.json")
@@ -73,7 +75,7 @@ For all config options (parameter draws, spectra, throughput, detector layers), 
 
 # dLuxToliman README
 
-*Everything below is the unaltered dLuxToliman README (as on `dev`, which this branch is based on). Its installation and usage instructions (e.g. `pip install dLuxToliman`) refer to the released dLuxToliman package, not to this branch; to use this branch, follow [Simulating data](#simulating-data) above.*
+*Everything below is the unaltered dLuxToliman README (as on `main`, which this branch is based on). Its installation and usage instructions (e.g. `pip install dLuxToliman`) refer to the released dLuxToliman package, not to this branch; to use this branch, follow [Simulating data](#simulating-data) above.*
 
 # dLuxToliman
 

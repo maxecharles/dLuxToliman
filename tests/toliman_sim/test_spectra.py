@@ -5,7 +5,7 @@ import dLuxToliman as dlT
 from toliman_sim import build_optics, build_source
 from toliman_sim.spectra import V_ZERO_POINT, blackbody_sed
 
-from test_simulate import SMALL_CONFIG
+from .small_config import SMALL_CONFIG
 
 
 def _source(config):
@@ -79,7 +79,7 @@ def test_real_throughput_and_spectra_files():
     from pathlib import Path
     from toliman_sim.spectra import system_throughput
 
-    repo = Path(__file__).parents[1]
+    repo = Path(__file__).parents[2]
     grid, throughput = system_throughput(
         {"components": [{"path": "data/throughput/bandpass.csv"},
                         {"path": "data/throughput/qe_mono.csv"}]},
