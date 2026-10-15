@@ -124,14 +124,17 @@ class TestJitteredToliman:
         assert growth[direction] > 1
         assert np.abs(growth[other]) < 0.1 * growth[direction]
 
+    # Above about 4 arcseconds the shm end points used to land on the
+    # asymptote of arcsin, giving NaN gradients
+    @pytest.mark.parametrize("jitter_mag", [0.5, 10.0])
     @pytest.mark.parametrize("jitter_shape", ["linear", "shm"])
-    def test_gradient(self, create_jittered, jitter_shape):
+    def test_gradient(self, create_jittered, jitter_shape, jitter_mag):
         telescope = create_jittered(n_psfs=4, jitter_shape=jitter_shape)
 
         def loss(jitter_mag):
             return telescope.set("jitter_mag", jitter_mag).jitter_model().sum()
 
-        assert np.isfinite(jax.grad(loss)(np.array(0.5)))
+        assert np.isfinite(jax.grad(loss)(np.array(jitter_mag)))
 
     def test_get_bounds(self):
         bounds = JitteredToliman._get_bounds(np.array([0.0, 1.0, 2.0, 3.0]))
