@@ -19,7 +19,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 
 def read(*parts):
-    with codecs.open(os.path.join(here, *parts), 'r') as fp:
+    with codecs.open(os.path.join(here, *parts), "r") as fp:
         return fp.read()
 
 
@@ -33,33 +33,28 @@ def find_version(*file_paths):
 
 # DEPENDENCIES
 # 1. What are the required dependencies?
-with open('requirements.txt') as f:
+with open("requirements.txt") as f:
     install_requires = f.read().splitlines()
 # 2. What dependencies required to run the unit tests? (i.e. `pytest --remote-data`)
 # tests_require = ['pytest', 'pytest-cov', 'pytest-remotedata']
 
 
 setuptools.setup(
-    python_requires='>=3.7,<4.0',
+    python_requires=">=3.10,<4.0",
     name="dLuxToliman",
     version=find_version("dLuxToliman", "__init__.py"),
     description=long_description,
     long_description=long_description,
-
     author="Max Charles",
     author_email="max.charles@sydney.edu.au",
     url="https://github.com/maxecharles/dLuxToliman",
-
     project_urls={
         "Bug Tracker": "https://github.com/maxecharles/dLuxToliman/issues",
     },
-
     install_requires=install_requires,
-
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
-
-    packages=["dLuxToliman"]
+    packages=["dLuxToliman"],
 )

@@ -4,7 +4,6 @@ import dLux
 import dLux.utils as dlu
 from jax import numpy as np
 from jax import Array
-from jax.scipy.stats import multivariate_normal
 
 __all__ = ["GaussianJitter", "SHMJitter"]
 
@@ -31,7 +30,7 @@ class BaseJitter(DetectorLayer()):
         self.kernel_size = kernel_size
         super().__init__()
 
-    def apply(self: DetectorLayer, psf: PSF()) -> PSF():
+    def __call__(self: DetectorLayer, psf: PSF()) -> PSF():
         """
         Applies the layer to the Image.
 
@@ -48,6 +47,13 @@ class BaseJitter(DetectorLayer()):
         kernel = self.generate_kernel(dLux.utils.rad2arcsec(psf.pixel_scale))
 
         return psf.convolve(kernel)
+
+    def apply(self: DetectorLayer, psf: PSF()) -> PSF():
+        """
+        Alias for `__call__`. dLux 0.15 calls layers directly and makes
+        `__call__` abstract; dLux 0.14 calls `apply` and makes that abstract.
+        """
+        return self(psf)
 
     @abstractmethod
     def generate_kernel(self, pixel_scale: float) -> Array:
@@ -66,8 +72,8 @@ class GaussianJitter(BaseJitter):
     ----------
     kernel_size : int
         The size in pixels of the convolution kernel to use.
-    r : float, arcseconds
-        The magnitude of the jitter.
+    r : float, arcseconds^4
+        The magnitude of the jitter, (sigma_major * sigma_minor)^2.
     shear : float
         The shear of the jitter.
     phi : float, degrees
@@ -75,7 +81,8 @@ class GaussianJitter(BaseJitter):
     kernel_size : int, odd
         The size of the convolution kernel in pixels to use.
     kernel_oversample : int
-        The oversampling factor for the kernel generation.
+        Unused; the kernel is built in Fourier space and needs no oversampling.
+        Kept so that existing code passing it still runs.
     """
 
     r: float | Array
@@ -98,9 +105,10 @@ class GaussianJitter(BaseJitter):
         ----------
         r : float
             The jitter magnitude, defined as the determinant of the covariance
-            matrix of the multivariate Gaussian kernel. This is the product of the
-            standard deviations of the minor and major axes of the kernel, given in
-            arcseconds.
+            matrix of the multivariate Gaussian kernel. This is the square of the
+            product of the standard deviations of the minor and major axes of the
+            kernel, (sigma_major * sigma_minor)^2, in arcseconds^4. A symmetric
+            kernel has variance sqrt(r) arcseconds^2.
         shear : float, [0, 1)
             A measure of how asymmetric the jitter is. Defined as one minus the ratio between
             the standard deviations of the minor/major axes of the multivariate
@@ -109,8 +117,13 @@ class GaussianJitter(BaseJitter):
             jitter kernel becomes more linear.
         phi : float
             The angle of the jitter in degrees.
-        kernel_size : int = 10
-            The size of the convolution kernel in pixels to use.
+        kernel_size : int = 11
+            The PSF is zero-padded by kernel_size // 2 pixels before the blur, and
+            generate_kernel returns a kernel of this size. It should span at least
+            ~8 standard deviations of the major axis, so that light blurred past
+            the image edge is not wrapped onto the opposite edge.
+        kernel_oversample : int = 1
+            Unused; kept so that existing code passing it still runs.
         """
 
         # checking for odd kernel size
@@ -149,17 +162,8 @@ class GaussianJitter(BaseJitter):
             ]
         )
 
-        # calculating the variances (var1 > var2)
-        # NOTE Variances can cause determinant to be very small.
-        # For my jitter analysis, I had the following line:
-
-        # var1 = 1e-3 * np.sqrt(self.r) / (1 - self.shear)
-
-        # The 1e-3 factor increased the determinant by 6 orders of mag.
-        # And I just accounted for the units manually on the other side.
-        # This was a bit of a hacky way to to avoid numerical issues.
-        # TODO Adjust variance units so that determinant is a nice number.
-
+        # calculating the variances (var1 > var2) in arcsec^2, so that
+        # r = var1 * var2 is the determinant of the covariance in arcsec^4
         var1 = np.sqrt(self.r) / (1 - self.shear)
         var2 = var1 * (1 - self.shear) ** 2
 
@@ -176,9 +180,66 @@ class GaussianJitter(BaseJitter):
 
         return covariance_matrix
 
+    def transfer_function(self, fx: Array, fy: Array) -> Array:
+        """
+        The Fourier transform of the Gaussian kernel, exp(-2 pi^2 f^T C f).
+
+        Parameters
+        ----------
+        fx : Array
+            Spatial frequencies along x (columns), in cycles per arcsecond.
+        fy : Array
+            Spatial frequencies along y (rows), in cycles per arcsecond.
+
+        Returns
+        -------
+        transfer : Array
+            The transfer function evaluated at (fx, fy).
+        """
+        cov = self.covariance_matrix
+        quad_form = cov[0, 0] * fx**2 + 2 * cov[0, 1] * fx * fy + cov[1, 1] * fy**2
+        return np.exp(-2 * np.pi**2 * quad_form)
+
+    def __call__(self: DetectorLayer, psf: PSF()) -> PSF():
+        """
+        Blurs the PSF by multiplying its Fourier transform by the Gaussian's.
+
+        This is exact for a well-sampled PSF at any jitter width. A kernel sampled
+        on the pixel grid is not: once the jitter is narrower than about a pixel it
+        puts almost all of its weight in the central pixel and drops most of the
+        blur, worst along the minor axis of a sheared kernel. The PSF is
+        zero-padded by kernel_size // 2 pixels on each side first, so the edges
+        behave like a convolution with a kernel_size kernel.
+
+        Parameters
+        ----------
+        psf : PSF
+            The PSF object to operate on.
+
+        Returns
+        -------
+        psf : PSF
+            The blurred PSF object.
+        """
+        pixel_scale = dLux.utils.rad2arcsec(psf.pixel_scale)
+        pad = self.kernel_size // 2
+        data = np.pad(psf.data, pad)
+
+        # spatial frequencies of the padded image, cycles per arcsecond
+        fy = np.fft.fftfreq(data.shape[0], d=pixel_scale)
+        fx = np.fft.fftfreq(data.shape[1], d=pixel_scale)
+        fx, fy = np.meshgrid(fx, fy)  # x along columns, y along rows
+
+        blurred = np.fft.ifft2(np.fft.fft2(data) * self.transfer_function(fx, fy)).real
+        ny, nx = psf.data.shape
+        return psf.set("data", blurred[pad : pad + ny, pad : pad + nx])
+
     def generate_kernel(self, pixel_scale: float) -> Array:
         """
-        Generates the normalised multivariate Gaussian kernel.
+        The blur that the layer applies, as a normalised kernel_size x
+        kernel_size kernel, e.g. for plotting. It is computed on a grid four
+        times larger and cropped, so that it matches the layer. Below about one
+        pixel it has small negative side lobes, as any band-limited blur does.
 
         Parameters
         ----------
@@ -190,21 +251,14 @@ class GaussianJitter(BaseJitter):
         kernel : Array
             The normalised Gaussian kernel.
         """
-        # Generate distribution
-        extent = pixel_scale * self.kernel_size  # kernel size in arcseconds
-        x = (
-            np.linspace(0, extent, self.kernel_oversample * self.kernel_size)
-            - 0.5 * extent
-        )
-        xs, ys = np.meshgrid(x, x)
-        pos = np.dstack((xs, ys))
+        n = 4 * self.kernel_size
+        freqs = np.fft.fftfreq(n, d=pixel_scale)  # cycles per arcsecond
+        fx, fy = np.meshgrid(freqs, freqs)  # x along columns, y along rows
 
-        kernel = dlu.downsample(
-            multivariate_normal.pdf(
-                pos, mean=np.array([0.0, 0.0]), cov=self.covariance_matrix
-            ),
-            self.kernel_oversample,
-        )
+        # back to real space with zero lag at the centre, then crop
+        kernel = np.fft.fftshift(np.fft.ifft2(self.transfer_function(fx, fy)).real)
+        c, h = n // 2, self.kernel_size // 2
+        kernel = kernel[c - h : c + h + 1, c - h : c + h + 1]
 
         return kernel / np.sum(kernel)
 

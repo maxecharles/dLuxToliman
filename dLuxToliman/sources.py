@@ -49,7 +49,7 @@ class AlphaCen(Source()):
         position_angle=90,  # degrees
         x_position=0.0,  # arcseconds
         y_position=0.0,  # arcseconds
-        log_flux=7.832,  # Photons
+        log_flux=6.979,  # log10 photons in one 0.1 s frame
         contrast=3.37,
         bandpass=(530, 640),  # nm
         weights=None,
@@ -68,7 +68,9 @@ class AlphaCen(Source()):
         y_position : float
             The vertical offset of the image in arcseconds.
         log_flux : float
-            The log10 of the total number of photons in the image.
+            The log10 of the total number of photons from both stars in the image.
+            The default, 6.979, is one 0.1 s frame of Alpha Cen through the
+            TOLIMAN bandpass and collecting area (see photon_count.md).
         contrast : float
             The flux ratio of Alpha Cen A / Alpha Cen B.
         bandpass : tuple

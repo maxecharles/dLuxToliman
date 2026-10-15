@@ -147,8 +147,8 @@ class JitteredToliman(Toliman):
         """
 
         super().__init__(optics, source)  # calling super
-        self.jitter_mag = np.array(jitter_mag, dtype=np.float64)
-        self.jitter_angle = np.array(jitter_angle, dtype=np.float64)
+        self.jitter_mag = np.asarray(jitter_mag, dtype=float)
+        self.jitter_angle = np.asarray(jitter_angle, dtype=float)
         if n_psfs < 2:
             raise ValueError("n_psfs must be greater than 1.")
         self.n_psfs = n_psfs
@@ -221,10 +221,13 @@ class JitteredToliman(Toliman):
         # grabbing machine epsilon to avoid function evaluation at the asymptote
         eps = self._machine_epsilon(self.jitter_mag.dtype)
 
+        # PSF positions as a fraction of the amplitude, jitter_mag / 2. Offsetting
+        # by eps here rather than in arcseconds keeps the end points off the
+        # asymptote at any jitter_mag, which would otherwise make the gradient NaN
+        fractions = np.linspace(-1 + eps, 1 - eps, self.n_psfs)
+
         # generating the base array for PSF positions
-        spacing = np.linspace(
-            -self.jitter_mag / 2 + eps, self.jitter_mag / 2 - eps, self.n_psfs
-        )
+        spacing = fractions * self.jitter_mag / 2
 
         # grabbing the x and y positions of the PSFs
         xs = spacing * x + self.x_position  # arcseconds
@@ -236,9 +239,10 @@ class JitteredToliman(Toliman):
 
         # for simple harmonic jitter
         if self.jitter_shape == "shm":
-            bounds = self._get_bounds(spacing)  # grabbing bounds for integration
-            # weighting by value of integral between bounds
-            weights = self.inv_shm(bounds[:-1]) - self.inv_shm(bounds[1:])
+            bounds = self._get_bounds(fractions)  # grabbing bounds for integration
+            # weighting by value of integral between bounds, arcsin being the
+            # inverse of x(t) = sin(t) in units of the amplitude
+            weights = np.arcsin(bounds[:-1]) - np.arcsin(bounds[1:])
             weights /= weights.sum()  # normalising
 
         # vmapping over all PSF positions

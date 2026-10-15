@@ -1,5 +1,5 @@
 name = "dLuxToliman"
-__version__ = "0.3.0"
+__version__ = "0.4.1"
 
 # Import as modules
 from . import optical_systems
@@ -25,4 +25,4 @@ modules = [
     sources,
 ]
 
-__all__ = [module.__all__ for module in modules]
+__all__ = [name for module in modules for name in module.__all__]

@@ -52,7 +52,7 @@ plt.show()
 ![Example Image](./assets/basic_toliman_psf.jpg)
 
 ## Contributors
-[Max Charles](https://github.com/maxecharles), [Louis Desdoigts](https://github.com/LouisDesdoigts), [Benjamin Pope](https://github.com/benjaminpope), and [Peter Tuthill](https://github.com/ptuthill).
+[Max Charles](https://github.com/maxecharles), [Louis Desdoigts](https://github.com/LouisDesdoigts), [Benjamin Pope](https://github.com/benjaminpope), [Connor Langford](https://github.com/CLangford2098), [Milo Langker](https://github.com/milolangker), and [Peter Tuthill](https://github.com/ptuthill).
 
 ## License
 

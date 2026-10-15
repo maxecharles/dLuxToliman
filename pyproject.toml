@@ -4,15 +4,24 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dLuxToliman"
-version = "0.4.0"
+version = "0.4.1"
 description = "A repo to hold the canonical dLux Toliman models."
 readme = "README.md"
 dynamic = ["urls", "classifiers", "authors", "requires-python"]
+dependencies = [
+    "dLux>=0.14.3,<0.15",
+    "zodiax==0.5.*",
+    "jax",
+    "equinox",
+]
 
-[dependencies]
-dLux = "0.14.*"
-jax = "*"
-jaxlib = "*"
+[project.optional-dependencies]
+tests = [
+    "pytest",
+    "pytest-cov",
+]
 
-[test]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [scripts]
