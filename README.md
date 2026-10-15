@@ -1,6 +1,6 @@
-# toliman_data
+# TOLIMAN data simulator (`milo-dev` branch)
 
-The `toliman_data` branch of [maxecharles/dLuxToliman](https://github.com/maxecharles/dLuxToliman/tree/toliman_data) adds `toliman_sim`, which simulates TOLIMAN data from a JSON config. The config sets the optics, the Alpha Cen A/B spectra and geometry, detector effects, noise, and which parameters to draw at random for each observation. It writes the noisy observations as 3D arrays, `(n_observations, ny, nx)`, together with the noiseless images and a table of the true parameters.
+The `milo-dev` branch of [maxecharles/dLuxToliman](https://github.com/maxecharles/dLuxToliman/tree/milo-dev) adds `toliman_sim`, which simulates TOLIMAN data from a JSON config. The config sets the optics, the Alpha Cen A/B spectra and geometry, detector effects, noise, and which parameters to draw at random for each observation. It writes the noisy observations as 3D arrays, `(n_observations, ny, nx)`, together with the noiseless images and a table of the true parameters.
 
 Implementation details, the config options, validation results, the feature checklist and the changes made to `dLuxToliman` are in [DEVELOPMENT.md](DEVELOPMENT.md).
 
@@ -8,7 +8,7 @@ Implementation details, the config options, validation results, the feature chec
 
 ## Simulating data
 
-**One-time setup** (on this branch: `git clone -b toliman_data https://github.com/maxecharles/dLuxToliman.git`):
+**One-time setup** (on this branch: `git clone -b milo-dev https://github.com/maxecharles/dLuxToliman.git`):
 
 ```bash
 conda activate toliman_data
