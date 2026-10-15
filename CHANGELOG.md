@@ -1,5 +1,28 @@
 # Changelog
 
+## V0.5.1
+
+Documentation and packaging only. Nothing changes in the models, so PSFs are identical
+to 0.5.0.
+
+### ✨ New Features
+- Documentation at [maxecharles.github.io/dLuxToliman](https://maxecharles.github.io/dLuxToliman/):
+  an installation guide, the photon count tutorial, and an API reference for every
+  public class and function, with a version of the docs for each release.
+- `pip install "dLuxToliman[dev]"` installs the tools for building the documentation,
+  along with the test dependencies.
+
+### 🐛 Bug Fixes
+- The images in the README now show on the PyPI page. In 0.5.0 their relative links
+  were broken there.
+- The PyPI page links to the documentation.
+
+### 🔧 Other Changes
+- Removed parameters that do not exist from the docstrings: `n_struts` and
+  `strut_rotation` in `TolimanOpticalSystem`, and `eps` in `SHMJitter.CDF`.
+- A GitHub Actions workflow builds the documentation and deploys it to GitHub Pages on
+  every push to `main` and every version tag.
+
 ## V0.5.0
 
 dLuxToliman now runs on dLux 0.15. dLux 0.15 changed its Fourier sign convention, so

@@ -29,6 +29,7 @@ setuptools.setup(
     author_email="max.charles@sydney.edu.au",
     url="https://github.com/maxecharles/dLuxToliman",
     project_urls={
+        "Documentation": "https://maxecharles.github.io/dLuxToliman/",
         "Bug Tracker": "https://github.com/maxecharles/dLuxToliman/issues",
     },
     install_requires=install_requires,
