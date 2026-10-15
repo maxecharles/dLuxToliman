@@ -167,16 +167,6 @@ class TolimanOpticalSystem(AngularOpticalSystem()):
             psf_pixel_scale=psf_pixel_scale,
         )
 
-    def _apply_aperture(self, wavelength, offset):
-        """
-        Overwrite so mask can be stored as array
-        """
-        wf = self._construct_wavefront(wavelength, offset)
-        wf *= self.aperture
-        wf = wf.normalise()
-        wf += self.mask
-        return wf
-
 
 class TolimanSpikes(TolimanOpticalSystem):
     """

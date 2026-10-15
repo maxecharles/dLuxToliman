@@ -9,7 +9,7 @@ description = "A repo to hold the canonical dLux Toliman models."
 readme = "README.md"
 dynamic = ["urls", "classifiers", "authors", "requires-python"]
 dependencies = [
-    "dLux>=0.14.3,<0.15",
+    "dLux==0.15.*",
     "zodiax==0.5.*",
     "jax",
     "equinox",

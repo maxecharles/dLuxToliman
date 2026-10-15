@@ -86,8 +86,7 @@ class ApplyBasisCLIMB(BasisLayer()):
         # assert self.ideal_wavelength.ndim == 0, ("ideal_wavelength must be a "
         #                                          "scalar array.")
 
-    # def __call__(self: OpticalLayer(), wavefront: Wavefront) -> Wavefront:
-    def apply(self: OpticalLayer(), wavefront: Wavefront) -> Wavefront:
+    def __call__(self: OpticalLayer(), wavefront: Wavefront) -> Wavefront:
         """
         Generates and applies the binary OPD array to the wavefront in a
         differentiable manner.
