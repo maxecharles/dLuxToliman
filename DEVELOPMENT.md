@@ -1,4 +1,4 @@
-# toliman_data: development notes
+# milo-dev: development notes
 
 Details of the simulator (`toliman_sim/`) and the additions made to `dLuxToliman/` on this branch: how it works, the config options, validation results, the checklist of implemented and planned features, known issues, and changes relative to upstream. The [README](README.md) covers installation and running a simulation.
 
@@ -316,7 +316,7 @@ This branch starts from `dev`, which already has the `GaussianJitter` fixes and 
 
 ## Keeping up with `dev`
 
-This is the `toliman_data` branch of [maxecharles/dLuxToliman](https://github.com/maxecharles/dLuxToliman), branched off `dev`. To bring in later changes:
+This is the `milo-dev` branch of [maxecharles/dLuxToliman](https://github.com/maxecharles/dLuxToliman), branched off `dev`. To bring in later changes:
 
 ```bash
 git fetch origin && git merge origin/dev
