@@ -25,4 +25,4 @@ modules = [
     sources,
 ]
 
-__all__ = [module.__all__ for module in modules]
+__all__ = [name for module in modules for name in module.__all__]
