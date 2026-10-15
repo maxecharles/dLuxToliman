@@ -1,0 +1,74 @@
+name: publish to PyPI
+
+# Publishing a GitHub Release builds the package and uploads it to PyPI through
+# PyPI Trusted Publishing, so no API token is stored anywhere
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: build sdist and wheel
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+
+      # The version comes from __version__ in dLuxToliman/__init__.py, so a
+      # release tagged v0.5.0 must build 0.5.0
+      - name: check the version matches the release tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if ! ls dist/*-"$version"-py3-none-any.whl > /dev/null 2>&1; then
+            echo "::error::Release tag $GITHUB_REF_NAME does not match the built package: $(ls dist | tr '\n' ' ')"
+            exit 1
+          fi
+
+      # Installs the wheel and models a PSF from outside the checkout, so this
+      # fails if the wheel is missing layers/ or the diffractive pupil
+      - name: smoke test the wheel
+        run: |
+          python -m pip install dist/*.whl
+          cd "$RUNNER_TEMP"
+          python -c "import dLuxToliman as dlT; print(dlT.Toliman(dlT.TolimanOpticalSystem(wf_npixels=64, psf_npixels=16), dlT.AlphaCen(n_wavels=2)).model().shape)"
+
+      - name: upload dist
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/dLuxToliman
+    permissions:
+      id-token: write  # lets PyPI verify this workflow, in place of a token
+
+    steps:
+      - name: download dist
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+
+      - name: publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
