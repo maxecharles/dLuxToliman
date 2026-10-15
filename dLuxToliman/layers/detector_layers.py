@@ -334,8 +334,6 @@ class SHMJitter(BaseJitter):
         ----------
         x : Array
             The input values.
-        eps : float
-            A optional small offset to avoid divide by zero errors.
         """
         # TODO add compatibility for self.A = 0
         return np.arcsin(dlu.nandiv(x, self.A))

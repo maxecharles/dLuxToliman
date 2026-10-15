@@ -123,7 +123,7 @@ plt.show()
 
 
     
-![png](assets/photon_count_files/photon_count_8_0.png)
+![png](https://raw.githubusercontent.com/maxecharles/dLuxToliman/main/assets/photon_count_files/photon_count_8_0.png)
     
 
 
@@ -176,7 +176,7 @@ plt.show()
 
 
     
-![png](assets/photon_count_files/photon_count_10_1.png)
+![png](https://raw.githubusercontent.com/maxecharles/dLuxToliman/main/assets/photon_count_files/photon_count_10_1.png)
     
 
 
@@ -221,7 +221,7 @@ plt.show()
 
 
     
-![png](assets/photon_count_files/photon_count_14_0.png)
+![png](https://raw.githubusercontent.com/maxecharles/dLuxToliman/main/assets/photon_count_files/photon_count_14_0.png)
     
 
 
@@ -384,6 +384,6 @@ plt.show()
 
 
     
-![png](assets/photon_count_files/photon_count_20_1.png)
+![png](https://raw.githubusercontent.com/maxecharles/dLuxToliman/main/assets/photon_count_files/photon_count_20_1.png)
     
 

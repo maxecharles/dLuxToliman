@@ -20,6 +20,13 @@ tests = [
     "pytest-cov",
 ]
 
+dev = [
+    "pytest",
+    "pytest-cov",
+    "zensical",           # The documentation engine
+    "mkdocstrings-python" # Required for API generation
+]
+
 # The version is defined once, as __version__ in dLuxToliman/__init__.py
 [tool.setuptools.dynamic]
 version = {attr = "dLuxToliman.__version__"}

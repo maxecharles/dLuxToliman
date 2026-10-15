@@ -66,12 +66,8 @@ class TolimanOpticalSystem(AngularOpticalSystem()):
             The outer diameter of the primary mirror in metres.
         m2_diameter : float
             The diameter of the secondary mirror in metres.
-        n_struts : int
-            The number of uniformly spaced struts holding the secondary mirror.
         strut_width : float
             The width of the struts in metres.
-        strut_rotation : float
-            The angular rotation of the struts in radians.
         z_oversize : float
             The oversize factor of the zernike polynomials relative to the
             primary mirror diameter. This is to ensure that the zernike

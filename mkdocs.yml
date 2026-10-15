@@ -1,0 +1,102 @@
+# Great resources: https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/#with-section-index-pages
+# https://squidfunk.github.io/mkdocs-material/reference/buttons/
+# https://squidfunk.github.io/mkdocs-material/reference/admonitions/
+
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github  # Sets the logo to the GitHub 'cat'
+  features:
+    - navigation.top      # "Back to top" button
+    - navigation.indexes   # Allows a section title to be its own page
+    - content.code.copy   # Copy button on code blocks
+    - toc.integrate       # Put Table of Contents on the left sidebar
+    - content.action.edit   # Adds an "Edit this page" button
+    - content.action.view   # Adds a "View source" button
+
+  palette:
+    # Light mode
+    - scheme: default
+      primary: amber
+      accent: orange
+      toggle:
+        icon: lucide/sun
+        name: Switch to dark mode
+    # Dark mode
+    - scheme: slate
+      primary: amber
+      accent: orange
+      toggle:
+        icon: lucide/moon
+        name: Switch to light mode
+
+site_name: dLuxToliman documentation
+docs_dir: docs/
+site_description: Documentation for dLuxToliman.
+site_author: Max Charles
+site_url: https://maxecharles.github.io/dLuxToliman/
+repo_url: https://github.com/maxecharles/dLuxToliman
+repo_name: maxecharles/dLuxToliman
+edit_uri: edit/main/docs/   # Directs where the "Edit" link points
+
+# Disable unresolved_references check: notebook outputs contain patterns like
+# f64[2], Latent[0], [00:00<?, ?it/s] that look like link references but aren't.
+# invalid_links and invalid_link_anchors remain active to catch real broken links.
+validation:
+  unresolved_references: false
+
+strict: true # Prevent builds with warnings
+
+plugins:
+  - zensical/search      # High-performance built-in search
+  - mkdocstrings:        # Auto-generate API docs from code
+      handlers:
+        python:
+          options:
+            docstring_style: "numpy"
+            show_root_heading: true      # Highly recommended for module-level docs
+
+markdown_extensions:
+  - admonition           # Support for !!! note "Title" blocks
+  - pymdownx.details     # Support for collapsible ??? note blocks
+  - pymdownx.superfences # Allows nesting code inside other blocks
+  - pymdownx.snippets:   # Allows including code snippets from files
+      base_path: [".", "docs"] # Look in the root AND the docs folder
+  - pymdownx.arithmatex: # Required for LaTeX math
+      generic: true
+  - toc:
+      permalink: "¤"     # Clickable link next to headers
+      toc_depth: 2
+  - attr_list            # Required to resize/style images {: width=300}
+  - md_in_html           # Allows using HTML tags inside Markdown
+
+
+# MathJax setup for LaTeX rendering
+extra_javascript:
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+extra:
+  version:
+    provider: mike  # Tells the UI: "Look for mike's version list"
+
+# ===== Navigation =====
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Tutorials:
+    - Photon Count: photon_count.md
+
+  - API:
+    - Core API:
+      - Overview: API/core/overview.md
+      - Gradient Energy: API/core/gradient_energy.md
+      - Optical Systems: API/core/optical_systems.md
+      - Sources: API/core/sources.md
+      - Telescopes: API/core/telescopes.md
+
+    - Layers API:
+      - Overview: API/layers/overview.md
+      - Detector Layers: API/layers/detector_layers.md
+      - Optical Layers: API/layers/optical_layers.md
+  - Change Log: changelog.md
