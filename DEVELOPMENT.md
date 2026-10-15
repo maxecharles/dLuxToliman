@@ -227,7 +227,7 @@ The "Oct" column gives the target for the October data simulator: ✅ planned, �
 | [x] | Seeded, reproducible runs | `jax.random` keys from `seed`, with one key per observation via `fold_in` |
 | [x] | Notebook front end | `notebooks/simulate_data.ipynb` |
 | [x] | Fail loudly on unimplemented effects | |
-| [x] | Tests | `tests/test_simulate.py`, `tests/test_spectra.py` (`pytest`) |
+| [x] | Tests | `tests/toliman_sim/` (`pytest` runs them with dLuxToliman's own tests) |
 | [ ] | Finalise the config format | e.g. the units convention |
 | [ ] | Config validation | e.g. `pydantic` or `jsonschema`, with defaults filled in and written to the output |
 | [x] | Per-observation truth table | `{run_id}_truth.npz`, or the FITS `TRUTH` table |
@@ -235,8 +235,8 @@ The "Oct" column gives the target for the October data simulator: ✅ planned, �
 | [ ] | Repeated frames per draw | Several noise realisations of the same drawn parameters |
 | [ ] | Parameter sweeps / fidelity presets | e.g. `configs/fidelity_{0,1,2}.json`, or one base config plus overrides |
 | [x] | Exposure time per frame | Top-level `exposure_time_s` multiplies the photon-rate spectra and the dark-current rate |
-| [x] | Packaging in `pyproject.toml` | Distribution `toliman_data`, with extras `fits`, `scripts`, `test`. `setup.py` and `requirements.txt` removed |
-| [ ] | CI | GitHub Actions running `pytest` |
+| [x] | Packaging | dLuxToliman's `pyproject.toml`/`setup.py`, plus `toliman_sim`, the `dluxtras` dependency and extras `fits`, `scripts`, `notebooks` |
+| [x] | CI | dLuxToliman's GitHub Actions workflow runs all tests, including `tests/toliman_sim/` |
 
 ### Scene / source
 
@@ -271,7 +271,7 @@ The "Oct" column gives the target for the October data simulator: ✅ planned, �
 
 | | Item | Oct | Notes |
 | --- | --- | --- | --- |
-| [x] | High-frequency jitter (Gaussian / SHM) | ✅ | `high_frequency_jitter`, using `dLuxToliman.GaussianJitter` (Fourier-space blur, from `dev`; `sigma_mas` and `shear` are converted to `r` = (σ_major·σ_minor)²) / `SHMJitter` |
+| [x] | High-frequency jitter (Gaussian / SHM) | ✅ | `high_frequency_jitter`, using `dLuxToliman.GaussianJitter` (Fourier-space blur, from dLuxToliman 0.5.0; `sigma_mas` and `shear` are converted to `r` = (σ_major·σ_minor)²) / `SHMJitter` |
 | [x] | Downsampling from oversampled PSF to pixels | ✅ | Inserted automatically |
 | [x] | Pixel response (flat field) | ✅ | `pixel_response`: loads an `.npy` map, or draws a random flat with `flat_sigma` |
 | [~] | Nonlinear gain | ✅ | Exists elsewhere, not wired in |
@@ -307,17 +307,19 @@ The "Oct" column gives the target for the October data simulator: ✅ planned, �
 
 ## Changes to dLuxToliman
 
-This branch starts from `dev`, which already has the `GaussianJitter` fixes and dLux 0.15 support (#38), and the corrected `photon_count.md` area and `AlphaCen` default flux (#37). On top of that:
+This branch is based on `main` (dLuxToliman 0.5.0), which already has the `GaussianJitter` fixes and dLux 0.15 support (#38), the corrected `photon_count.md` area and `AlphaCen` default flux (#37), and a test suite with CI. On top of that:
 
 - `telescopes.py`: `Toliman(optics, source, detector=None)` now accepts a detector.
 - `spectra.py` (new): re-exports `CombinedSpectrum`, `CombinedBasisSpectrum` and `propagate_spectrum` (Hermite sparsity) from [dluxtras](https://github.com/milolangker/dluxtras), a new dependency.
 - `sources.py`: new `SpectralAlphaCen`, with separate A and B spectra, exposure time as a multiplier, an explicit separation and a configurable reference point. The legacy `AlphaCen` is unchanged.
-- Packaging moved to `pyproject.toml` (distribution `toliman_data`). It ships subpackages, `diffractive_pupil.npy` and `toliman_sim`; `setup.py` and `requirements.txt` are removed.
+- Packaging: `setup.py` ships all subpackages (including `dLuxToliman.layers` and `toliman_sim`) and `diffractive_pupil.npy`; `pyproject.toml`/`requirements.txt` add the `dluxtras` dependency (from git) and the `fits`, `scripts` and `notebooks` extras.
+- `toliman_sim` does not change JAX settings on import; `simulate()` and the command line enable double precision, and `tests/toliman_sim/conftest.py` enables it per test so dLuxToliman's own tests are unaffected.
 
-## Keeping up with `dev`
+## Keeping up with `main`
 
-This is the `milo-dev` branch of [maxecharles/dLuxToliman](https://github.com/maxecharles/dLuxToliman), branched off `dev`. To bring in later changes:
+This is the `milo-dev` branch of [maxecharles/dLuxToliman](https://github.com/maxecharles/dLuxToliman), based on `main`. To move it onto a newer `main`, rebase and force-push:
 
 ```bash
-git fetch origin && git merge origin/dev
+git fetch origin && git rebase origin/main
+git push --force-with-lease
 ```

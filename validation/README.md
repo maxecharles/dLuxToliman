@@ -9,7 +9,7 @@ Scripts that reproduce the numbers quoted in [DEVELOPMENT.md](../DEVELOPMENT.md)
 | K (constrainable spectral modes) table | `python validation/constrainable_modes.py configs/example.json --n-frames 1` (and `10`, `1000`) | ~10 s each |
 | Hermite accuracy and speed (Δχ², node scan) | `python validation/hermite_accuracy.py configs/example.json` | ~10 s |
 | Reference point (`centre_weight`) Fisher table | `python validation/reference_point_fisher.py configs/example.json --weights 0 0.2 0.237 0.5 1` | ~40 s |
-| Jitter width (config → `GaussianJitter`) | `pytest tests/test_jitter.py` | seconds |
+| Jitter width (config → `GaussianJitter`) | `pytest tests/toliman_sim/test_jitter.py` | seconds |
 
 Requirements:
 - **CDBS files** (PHOENIX grid, Johnson V, Vega) go in `external/cdbs/` (gitignored). The URLs are in the docstring of [`scripts/make_stellar_spectra.py`](../scripts/make_stellar_spectra.py). `spectra_vs_pysynphot.py` also needs `grid/phoenix/catalog.fits`.
