@@ -20,7 +20,7 @@ psf = _point_psf()
 
 
 def _test_apply(layer):
-    # dLux 0.14 calls `apply`, dLux 0.15 calls the layer directly
+    # dLux calls the layer directly, and keeps `apply` as an alias
     for output in (layer.apply(psf), layer(psf), eqx.filter_jit(layer)(psf)):
         assert isinstance(output, PSF)
         assert output.data.shape == psf.data.shape

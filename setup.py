@@ -1,7 +1,4 @@
 import setuptools
-import os
-import codecs
-import re
 
 long_description = """This repository/package contains pre-built ∂Lux models of the Toliman optical system, and 
 pre-built parametrised ∂Lux source objects for Alpha Centauri. ∂Lux is an open-source differentiable optical modelling 
@@ -15,22 +12,6 @@ and this cutting-edge technology will enable scientists to identify exoplanets t
 telescopes. Toliman utilises a binary phase diffraction pupil to grasp the expected microarcsecond-scale astrometric 
 signal."""
 
-here = os.path.abspath(os.path.dirname(__file__))
-
-
-def read(*parts):
-    with codecs.open(os.path.join(here, *parts), "r") as fp:
-        return fp.read()
-
-
-def find_version(*file_paths):
-    version_file = read(*file_paths)
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M)
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
-
-
 # DEPENDENCIES
 # 1. What are the required dependencies?
 with open("requirements.txt") as f:
@@ -42,7 +23,6 @@ with open("requirements.txt") as f:
 setuptools.setup(
     python_requires=">=3.10,<4.0",
     name="dLuxToliman",
-    version=find_version("dLuxToliman", "__init__.py"),
     description=long_description,
     long_description=long_description,
     author="Max Charles",

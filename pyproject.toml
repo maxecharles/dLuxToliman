@@ -1,15 +1,14 @@
 [build-system]
-requires = ["setuptools>=45", "setuptools_scm[toml]>=6.2"]
+requires = ["setuptools>=61", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "dLuxToliman"
-version = "0.4.1"
 description = "A repo to hold the canonical dLux Toliman models."
 readme = "README.md"
-dynamic = ["urls", "classifiers", "authors", "requires-python"]
+dynamic = ["version", "urls", "classifiers", "authors", "requires-python"]
 dependencies = [
-    "dLux>=0.14.3,<0.15",
+    "dLux==0.15.*",
     "zodiax==0.5.*",
     "jax",
     "equinox",
@@ -20,6 +19,10 @@ tests = [
     "pytest",
     "pytest-cov",
 ]
+
+# The version is defined once, as __version__ in dLuxToliman/__init__.py
+[tool.setuptools.dynamic]
+version = {attr = "dLuxToliman.__version__"}
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

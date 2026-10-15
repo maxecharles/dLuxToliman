@@ -48,13 +48,6 @@ class BaseJitter(DetectorLayer()):
 
         return psf.convolve(kernel)
 
-    def apply(self: DetectorLayer, psf: PSF()) -> PSF():
-        """
-        Alias for `__call__`. dLux 0.15 calls layers directly and makes
-        `__call__` abstract; dLux 0.14 calls `apply` and makes that abstract.
-        """
-        return self(psf)
-
     @abstractmethod
     def generate_kernel(self, pixel_scale: float) -> Array:
         """

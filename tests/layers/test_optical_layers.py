@@ -2,20 +2,24 @@ from jax import numpy as np, config
 
 config.update("jax_debug_nans", True)
 import pytest
+import equinox as eqx
 from dLux import Wavefront, LayeredOpticalSystem
 from dLuxToliman import ApplyBasisCLIMB
 from dLuxToliman.layers import ApplyBasisClimb
 
 npixels = 8
 wavelength = 585e-9
-wf = Wavefront(npixels, 1, wavelength)
+wf = Wavefront(wavelength, npixels, diameter=1.0)
 
 # CLIMB works on a basis sampled three times finer than the wavefront
 basis = np.ones((2, 3 * npixels, 3 * npixels))
 
 
 def _test_apply(layer):
-    assert isinstance(layer.apply(wf), Wavefront)
+    # dLux calls the layer directly, and keeps `apply` as an alias
+    for output in (layer(wf), layer.apply(wf), eqx.filter_jit(layer)(wf)):
+        assert isinstance(output, Wavefront)
+        assert output.phasor.shape == wf.phasor.shape
 
 
 class TestApplyBasisCLIMB:
@@ -30,15 +34,18 @@ class TestApplyBasisCLIMB:
     @pytest.mark.parametrize("sign,phase", [(1.0, np.pi), (-1.0, 0.0)])
     def test_binary_phase(self, sign, phase):
         # A positive latent OPD gives a pi phase at the ideal wavelength, and a
-        # negative one gives no phase
+        # negative one gives no phase. This compares phasors, as the phase of
+        # the wavefront comes back as -pi
         layer = ApplyBasisCLIMB(basis, wavelength, sign * np.ones(2))
-        assert np.allclose(layer.apply(wf).phase, phase, atol=1e-5)
+        assert np.allclose(layer(wf).phasor, wf.phasor * np.exp(1j * phase))
 
     def test_in_optical_system(self):
+        # The optical system calls the layer, which must apply CLIMB rather than
+        # the continuous basis of its parent BasisLayer
         layer = ApplyBasisCLIMB(basis, wavelength, np.ones(2))
         optics = LayeredOpticalSystem(npixels, 1.0, [("climb", layer)])
         output = optics.propagate_mono(wavelength, return_wf=True)
-        assert np.allclose(output.phase, np.pi, atol=1e-5)
+        assert np.allclose(output.phasor, -wf.phasor)
 
     def test_opd_phase_conversion(self):
         layer = ApplyBasisCLIMB(basis, wavelength)

@@ -3,6 +3,7 @@ from jax import numpy as np, config
 config.update("jax_debug_nans", True)
 import jax
 import pytest
+import dLux.utils as dlu
 from dLuxToliman import (
     TolimanOpticalSystem,
 )
@@ -127,22 +128,28 @@ def test_coefficient_gradients(create_optics):
 
 def test_tilt_sign_convention(create_optics):
     """
-    Locks in the sign convention of dLux 0.14, where a positive tilt
-    coefficient (Noll index 2) moves the PSF towards -x. dLux 0.15 reverses
-    the sign of every OPD, which moves the PSF the other way and changes the
-    PSF of the diffractive pupil away from 585 nm. If this test fails after a
-    dLux upgrade, the change in convention is deliberate only once this test
-    is updated to match.
+    Locks in the sign convention of dLux 0.15, where a positive tilt
+    coefficient (Noll index 2) moves the PSF towards +x, the same way as a
+    positive source offset. dLux 0.14 used the opposite sign for every OPD,
+    which rotates the PSF of each star by 180 degrees about the star, so tilts
+    moved the PSF the other way and the PSF of the diffractive pupil differed
+    away from 585 nm. If this test fails after a dLux upgrade, the change in
+    convention is deliberate only once this test is updated to match.
     """
     tilt = 1e-7  # metres of OPD, a shift of roughly three pixels
 
-    def x_centroid(coefficient):
+    def x_centroid(coefficient, offset=None):
         optics = create_optics(
             mask=Optic(),
             noll_indices=[2, 3],
             coefficients=np.array([coefficient, 0.0]),
         )
-        return _centroid(optics.propagate_mono(wavelength))[0]
+        return _centroid(optics.propagate_mono(wavelength, offset))[0]
 
-    assert x_centroid(tilt) < x_centroid(0.0) - 1
-    assert x_centroid(-tilt) > x_centroid(0.0) + 1
+    centre = x_centroid(0.0)
+    assert x_centroid(tilt) > centre + 1
+    assert x_centroid(-tilt) < centre - 1
+
+    # Half an arcsecond, also a shift of roughly three pixels
+    offset = dlu.arcsec2rad(np.array([0.5, 0.0]))
+    assert x_centroid(0.0, offset) > centre + 1
