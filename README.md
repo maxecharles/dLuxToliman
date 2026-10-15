@@ -1,14 +1,14 @@
 # toliman_data
 
-This fork ([milolangker/toliman_data](https://github.com/milolangker/toliman_data)) adds `toliman_sim`, which simulates TOLIMAN data from a JSON config. The config sets the optics, the Alpha Cen A/B spectra and geometry, detector effects, noise, and which parameters to draw at random for each observation. It writes the noisy observations as 3D arrays, `(n_observations, ny, nx)`, together with the noiseless images and a table of the true parameters.
+The `toliman_data` branch of [maxecharles/dLuxToliman](https://github.com/maxecharles/dLuxToliman/tree/toliman_data) adds `toliman_sim`, which simulates TOLIMAN data from a JSON config. The config sets the optics, the Alpha Cen A/B spectra and geometry, detector effects, noise, and which parameters to draw at random for each observation. It writes the noisy observations as 3D arrays, `(n_observations, ny, nx)`, together with the noiseless images and a table of the true parameters.
 
 Implementation details, the config options, validation results, the feature checklist and the changes made to `dLuxToliman` are in [DEVELOPMENT.md](DEVELOPMENT.md).
 
-> **AI disclosure.** The vast majority of the code and additions in this fork were written with [Claude](https://claude.com/claude-code) (Anthropic's AI assistant), working under the direction and review of the repository owner. That covers `toliman_sim/`, `SpectralAlphaCen`, the `GaussianJitter` fix, the scripts, tests and notebook, and the documentation of this fork. The original dLuxToliman models are the work of its contributors (see the original README below). Treat the AI-written parts with the usual scrutiny, and check results that matter.
+> **AI disclosure.** The vast majority of the code and additions on this branch were written with [Claude](https://claude.com/claude-code) (Anthropic's AI assistant), working under the direction and review of Milo Langker. That covers `toliman_sim/`, `SpectralAlphaCen`, the scripts, tests and notebook, and the documentation of this branch. The dLuxToliman models themselves are the work of its contributors (see the dLuxToliman README below). Treat the AI-written parts with the usual scrutiny, and check results that matter.
 
 ## Simulating data
 
-**One-time setup** (in this repository):
+**One-time setup** (on this branch: `git clone -b toliman_data https://github.com/maxecharles/dLuxToliman.git`):
 
 ```bash
 conda activate toliman_data
@@ -71,9 +71,9 @@ For all config options (parameter draws, spectra, throughput, detector layers), 
 
 ---
 
-# Original dLuxToliman README
+# dLuxToliman README
 
-*Everything below is the unaltered README of [maxecharles/dLuxToliman](https://github.com/maxecharles/dLuxToliman), the module this repository is forked from. Its installation and usage instructions (e.g. `pip install dLuxToliman`) refer to that upstream package, not to this fork; to use this fork, follow [Simulating data](#simulating-data) above.*
+*Everything below is the unaltered dLuxToliman README (as on `dev`, which this branch is based on). Its installation and usage instructions (e.g. `pip install dLuxToliman`) refer to the released dLuxToliman package, not to this branch; to use this branch, follow [Simulating data](#simulating-data) above.*
 
 # dLuxToliman
 
@@ -129,7 +129,7 @@ plt.show()
 ![Example Image](./assets/basic_toliman_psf.jpg)
 
 ## Contributors
-[Max Charles](https://github.com/maxecharles), [Louis Desdoigts](https://github.com/LouisDesdoigts), [Benjamin Pope](https://github.com/benjaminpope), and [Peter Tuthill](https://github.com/ptuthill).
+[Max Charles](https://github.com/maxecharles), [Louis Desdoigts](https://github.com/LouisDesdoigts), [Benjamin Pope](https://github.com/benjaminpope), [Connor Langford](https://github.com/CLangford2098), [Milo Langker](https://github.com/milolangker), and [Peter Tuthill](https://github.com/ptuthill).
 
 ## License
 
