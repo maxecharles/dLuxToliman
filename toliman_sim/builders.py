@@ -72,9 +72,13 @@ def _jitter(spec, optics, config, key):
 
     if spec.get("kernel", "gaussian") == "gaussian":
         sigma = spec["sigma_mas"] / 1e3  # arcsec, major axis
-        return dlT.GaussianJitter.from_sigma(
-            sigma,
-            shear=spec.get("shear", 0.0),
+        shear = spec.get("shear", 0.0)
+        # r = det(covariance) = (sigma_major * sigma_minor)^2 [arcsec^4], with
+        # sigma_minor = (1 - shear) * sigma_major. The kernel_size padding should
+        # span ~8 sigma_major.
+        return dlT.GaussianJitter(
+            r=(sigma**2 * (1 - shear)) ** 2,
+            shear=shear,
             phi=spec.get("phi_deg", 0.0),
             kernel_size=max(11, _odd(8 * sigma / pixel_scale)),
         )

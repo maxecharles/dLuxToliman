@@ -1,10 +1,10 @@
 # toliman_data: development notes
 
-Details of the simulator (`toliman_sim/`) and the additions made to `dLuxToliman/` in this fork: how it works, the config options, validation results, the checklist of implemented and planned features, known issues, and changes relative to upstream. The [README](README.md) covers installation and running a simulation.
+Details of the simulator (`toliman_sim/`) and the additions made to `dLuxToliman/` on this branch: how it works, the config options, validation results, the checklist of implemented and planned features, known issues, and changes relative to upstream. The [README](README.md) covers installation and running a simulation.
 
-These notes, like most of the code in this fork, were written with Claude (see the AI disclosure in the README).
+These notes, like most of the code on this branch, were written with Claude (see the AI disclosure in the README).
 
-**Reproducing the numbers.** Every validation number below (spectra vs pysynphot, out-of-band leak, K tables, Hermite accuracy, reference-point Fisher, jitter kernel width) can be regenerated with the scripts in [`validation/`](validation/). [validation/README.md](validation/README.md) gives the command for each one and its expected output.
+**Reproducing the numbers.** Every validation number below (spectra vs pysynphot, out-of-band leak, K tables, Hermite accuracy, reference-point Fisher, jitter width) can be regenerated with the scripts in [`validation/`](validation/). [validation/README.md](validation/README.md) gives the command for each one and its expected output.
 
 ## How it works
 
@@ -271,7 +271,7 @@ The "Oct" column gives the target for the October data simulator: ✅ planned, �
 
 | | Item | Oct | Notes |
 | --- | --- | --- | --- |
-| [x] | High-frequency jitter (Gaussian / SHM) | ✅ | `high_frequency_jitter`, using `dLuxToliman.GaussianJitter` (kernel fixed in this fork; see [Gaussian jitter fix](#gaussian-jitter-fix)) / `SHMJitter` |
+| [x] | High-frequency jitter (Gaussian / SHM) | ✅ | `high_frequency_jitter`, using `dLuxToliman.GaussianJitter` (Fourier-space blur, from `dev`; `sigma_mas` and `shear` are converted to `r` = (σ_major·σ_minor)²) / `SHMJitter` |
 | [x] | Downsampling from oversampled PSF to pixels | ✅ | Inserted automatically |
 | [x] | Pixel response (flat field) | ✅ | `pixel_response`: loads an `.npy` map, or draws a random flat with `flat_sigma` |
 | [~] | Nonlinear gain | ✅ | Exists elsewhere, not wired in |
@@ -298,52 +298,26 @@ The "Oct" column gives the target for the October data simulator: ✅ planned, �
 | [ ] | Camera output formats | ➖ | Requires more thought |
 | [ ] | Error and data-quality extensions | | |
 
-## Gaussian jitter fix
-
-`dLuxToliman.GaussianJitter` had two separate problems. Both are fixed in this fork.
-
-**1. The documentation of `r` was wrong. This was a notation problem.**
-
-- In the code, the covariance has eigenvalues σ_major² and σ_minor², where `r` = det(covariance) = (σ_major·σ_minor)² and `shear` = 1 − σ_minor/σ_major.
-- The docstring correctly called `r` the determinant, but also said it is "the product of the standard deviations ... in arcseconds". That is σ_major·σ_minor, i.e. √r. So `r` is really in **arcsec⁴**, and a round kernel has σ = r^¼.
-- The model itself was self-consistent; only the description was wrong.
-- In practice, though, `r` is an awkward parameter. A 2 mas jitter gives r = 1.6e-11. Gradients with respect to `r` scale like 1/√r, which is behind the "numerical issues" comment in the code and is bad for optimisers.
-- **Fix:** corrected docstrings, and a new `GaussianJitter.from_sigma(sigma, shear, phi)` constructor. The `r` attribute is unchanged, so the API is compatible.
-
-**2. The kernel was sampled on a stretched grid. This was a real bug.**
-
-- `generate_kernel` sampled the Gaussian at `linspace(0, extent, N) − extent/2`, with extent = `kernel_size` pixels and N = `kernel_size × kernel_oversample` points.
-- That spaces the samples by K/(N − 1) pixels instead of 1/oversample. With the defaults (K = 11, oversample 1), samples sit 1.1 px apart but are used as if 1 px apart.
-- So the applied kernel is **narrower than requested** by a factor (N − 1)/N: 9% for K = 11, 5% for K = 21 and 20% for K = 5.
-- The effective jitter therefore depended on `kernel_size`, which should only control truncation.
-- Simulating and fitting with the same code is self-consistent. But the fitted σ is biased high by that factor, and the bias changes if `kernel_size` changes.
-- **Fix:** samples now sit at the sub-pixel centres, `((arange(N) + ½)/oversample − K/2) × pixel_scale`.
-- The measured kernel σ now equals the input σ for every `kernel_size` (`tests/test_jitter.py`), apart from truncation when the kernel spans less than about ±3σ.
-- `kernel_oversample > 1` integrates the kernel over each pixel, which adds the variance of a one-pixel box (1/12 px²). This is the same convention as dLux's `ApplyJitter`. `toliman_sim` applies jitter on the oversampled PSF grid, where this is negligible.
-
 ## Known issues
 
-- `GaussianJitter`: both problems are fixed in this fork (see [Gaussian jitter fix](#gaussian-jitter-fix)), but they are still present upstream.
 - `TolimanSpikes` cannot be constructed: it passes `n_struts` and `strut_rotation`, which `TolimanOpticalSystem` no longer accepts. It also uses outdated dLux calls and a fixed 80/20 core/sidelobe flux split. `Toliman.full_model` depends on it.
 - `JitteredToliman` and `MixedAlphaCen` are untested with dLux 0.15. `MixedAlphaCen` also needs pysynphot.
 - The diffractive mask's π phase is fixed at 585 nm (`optical_systems.py`).
 - The QE spreadsheet is `ApproximateQE-BFS-U3-200S6.xlsx`, but its sheet is named `BFS-U3-51S5M-C`. Check that the curve is for the right camera.
-- `photon_count.md` used the diameters as radii, so its collecting area, and every photon count after it, is 4× too high. An erratum has been added. The legacy `AlphaCen(log_flux=7.832)` default may inherit this error. It is no longer used by `toliman_sim`.
 
 ## Changes to dLuxToliman
 
-- `layers/detector_layers.py`:
-  - Jitter layers now implement `__call__`, which dLux 0.15 requires; `apply` is kept as an alias. Without this change they cannot be instantiated on dLux ≥ 0.15.
-  - `GaussianJitter`: fixed the kernel sampling grid, corrected the `r` docstrings and added `from_sigma` (see [Gaussian jitter fix](#gaussian-jitter-fix)).
+This branch starts from `dev`, which already has the `GaussianJitter` fixes and dLux 0.15 support (#38), and the corrected `photon_count.md` area and `AlphaCen` default flux (#37). On top of that:
+
 - `telescopes.py`: `Toliman(optics, source, detector=None)` now accepts a detector.
 - `spectra.py` (new): re-exports `CombinedSpectrum`, `CombinedBasisSpectrum` and `propagate_spectrum` (Hermite sparsity) from [dluxtras](https://github.com/milolangker/dluxtras), a new dependency.
 - `sources.py`: new `SpectralAlphaCen`, with separate A and B spectra, exposure time as a multiplier, an explicit separation and a configurable reference point. The legacy `AlphaCen` is unchanged.
 - Packaging moved to `pyproject.toml` (distribution `toliman_data`). It ships subpackages, `diffractive_pupil.npy` and `toliman_sim`; `setup.py` and `requirements.txt` are removed.
 
-## Keeping up with upstream
+## Keeping up with `dev`
 
-To pull upstream changes:
+This is the `toliman_data` branch of [maxecharles/dLuxToliman](https://github.com/maxecharles/dLuxToliman), branched off `dev`. To bring in later changes:
 
 ```bash
-git fetch upstream && git merge upstream/main
+git fetch origin && git merge origin/dev
 ```

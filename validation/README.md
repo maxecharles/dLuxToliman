@@ -9,7 +9,7 @@ Scripts that reproduce the numbers quoted in [DEVELOPMENT.md](../DEVELOPMENT.md)
 | K (constrainable spectral modes) table | `python validation/constrainable_modes.py configs/example.json --n-frames 1` (and `10`, `1000`) | ~10 s each |
 | Hermite accuracy and speed (Δχ², node scan) | `python validation/hermite_accuracy.py configs/example.json` | ~10 s |
 | Reference point (`centre_weight`) Fisher table | `python validation/reference_point_fisher.py configs/example.json --weights 0 0.2 0.237 0.5 1` | ~40 s |
-| Gaussian jitter kernel width | `pytest tests/test_jitter.py` | seconds |
+| Jitter width (config → `GaussianJitter`) | `pytest tests/test_jitter.py` | seconds |
 
 Requirements:
 - **CDBS files** (PHOENIX grid, Johnson V, Vega) go in `external/cdbs/` (gitignored). The URLs are in the docstring of [`scripts/make_stellar_spectra.py`](../scripts/make_stellar_spectra.py). `spectra_vs_pysynphot.py` also needs `grid/phoenix/catalog.fits`.
@@ -65,11 +65,11 @@ Timings depend on the machine.
 ```
 photocentre weight F_B / (F_A + F_B) = 0.237
   weight  sigma_sep [uas]  corr(sep,x)  corr(sep,y)  max|corr| with sep  cond(corr)
-   0.000          501.812       -0.435       -0.009               0.435         2.6
-   0.200          501.812        0.024       -0.011               0.024         1.6
-   0.237          501.812        0.117       -0.011               0.117         1.6
-   0.500          501.812        0.617       -0.010               0.617         4.5
-   1.000          501.812        0.899       -0.007               0.899        19.6
+   0.000          501.833       -0.435       -0.009               0.435         2.6
+   0.200          501.833        0.024       -0.011               0.024         1.6
+   0.237          501.833        0.117       -0.011               0.117         1.6
+   0.500          501.833        0.617       -0.010               0.617         4.5
+   1.000          501.833        0.899       -0.007               0.899        19.6
 ```
 
 ## Scripts vs notebooks

@@ -1,25 +1,43 @@
+"""Checks that the configured jitter reaches dLuxToliman.GaussianJitter with the right width."""
+
+import copy
+
+import dLux
+import jax.numpy as np
 import numpy as onp
 import pytest
 
-import dLuxToliman as dlT
+from toliman_sim import build_optics
+from toliman_sim.builders import _jitter
+
+from test_simulate import SMALL_CONFIG
 
 
-def _kernel_sigma(layer, pixel_scale=1.0):
-    k = onp.asarray(layer.generate_kernel(pixel_scale))
-    x = onp.arange(k.shape[0]) - k.shape[0] // 2
+def _blur_moments(layer, pixel_scale_arcsec=0.01, npix=129):
+    """Second moments [arcsec^2] of a point blurred by the layer (Fourier-space blur)."""
+    delta = np.zeros((npix, npix)).at[npix // 2, npix // 2].set(1.0)
+    psf = dLux.PSF(delta, dLux.utils.arcsec2rad(pixel_scale_arcsec))
+    image = onp.asarray(layer(psf).data)
+    x = (onp.arange(npix) - npix // 2) * pixel_scale_arcsec
     X, Y = onp.meshgrid(x, x)
-    return onp.sqrt((k * X**2).sum()), onp.sqrt((k * Y**2).sum())
+    total = image.sum()
+    return (image * X**2).sum() / total, (image * Y**2).sum() / total, (image * X * Y).sum() / total
 
 
-@pytest.mark.parametrize("kernel_size", [11, 21])
-def test_gaussian_kernel_width_matches_sigma(kernel_size):
-    # Width must not depend on kernel_size (the old grid was stretched by K / (K - 1))
-    sx, sy = _kernel_sigma(dlT.GaussianJitter.from_sigma(1.0, kernel_size=kernel_size))
-    assert sx == pytest.approx(1.0, abs=1e-3) and sy == pytest.approx(1.0, abs=1e-3)
+@pytest.mark.parametrize("shear, phi", [(0.0, 0.0), (0.5, 30.0)])
+def test_jitter_width_matches_config(shear, phi):
+    config = copy.deepcopy(SMALL_CONFIG)
+    spec = {"name": "high_frequency_jitter", "kernel": "gaussian", "sigma_mas": 50.0,
+            "shear": shear, "phi_deg": phi}
+    layer = _jitter(spec, build_optics(config), config, None)
 
+    sigma_major, sigma_minor = 0.05, 0.05 * (1 - shear)
+    onp.testing.assert_allclose(onp.sqrt(onp.linalg.eigvalsh(layer.covariance_matrix))[::-1],
+                                [sigma_major, sigma_minor], rtol=1e-6)
 
-def test_r_is_determinant_of_covariance():
-    layer = dlT.GaussianJitter.from_sigma(2.0, shear=0.25, phi=30.0)
-    onp.testing.assert_allclose(onp.linalg.det(layer.covariance_matrix), layer.r)
-    major, minor = onp.sqrt(onp.linalg.eigvalsh(layer.covariance_matrix))[::-1]
-    onp.testing.assert_allclose([major, minor], [2.0, 1.5])
+    xx, yy, xy = _blur_moments(layer)
+    c, s = onp.cos(onp.radians(phi)), onp.sin(onp.radians(phi))
+    R = onp.array([[c, -s], [s, c]])
+    expected = R @ onp.diag([sigma_major**2, sigma_minor**2]) @ R.T
+    onp.testing.assert_allclose([xx, yy, xy], [expected[0, 0], expected[1, 1], expected[0, 1]],
+                                rtol=2e-2, atol=1e-6)
