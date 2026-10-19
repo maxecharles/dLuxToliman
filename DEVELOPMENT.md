@@ -307,7 +307,7 @@ The "Oct" column gives the target for the October data simulator: âœ… planned, â
 
 ## Changes to dLuxToliman
 
-This branch is based on `main` (dLuxToliman 0.5.0), which already has the `GaussianJitter` fixes and dLux 0.15 support (#38), the corrected `photon_count.md` area and `AlphaCen` default flux (#37), and a test suite with CI. On top of that:
+This branch is based on `main` (dLuxToliman 0.5.1), which already has the `GaussianJitter` fixes and dLux 0.15 support (#38), the corrected `photon_count.md` area and `AlphaCen` default flux (#37), and a test suite with CI. On top of that:
 
 - `telescopes.py`: `Toliman(optics, source, detector=None)` now accepts a detector.
 - `spectra.py` (new): re-exports `CombinedSpectrum`, `CombinedBasisSpectrum` and `propagate_spectrum` (Hermite sparsity) from [dluxtras](https://github.com/milolangker/dluxtras), a new dependency.
